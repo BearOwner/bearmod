@@ -17,6 +17,19 @@ namespace {
     static std::string s_authUser;
 }
 
+// --------------------------------------------------------
+// Forward declarations for NativeLib JNI functions (static)
+// Needed because we take their addresses in RegisterNativeLibNatives
+// --------------------------------------------------------
+extern "C" {
+JNIEXPORT void JNICALL Java_com_bearmod_bridge_NativeLib_initialize(JNIEnv* env, jclass clazz, jobject context);
+JNIEXPORT void JNICALL Java_com_bearmod_bridge_NativeLib_setAuthToken(JNIEnv* env, jclass clazz, jstring token);
+JNIEXPORT void JNICALL Java_com_bearmod_bridge_NativeLib_setAuth(JNIEnv* env, jclass clazz, jstring user, jstring token);
+JNIEXPORT void JNICALL Java_com_bearmod_bridge_NativeLib_clearAuth(JNIEnv* env, jclass clazz);
+JNIEXPORT jboolean JNICALL Java_com_bearmod_bridge_NativeLib_isAuthValid(JNIEnv* env, jclass clazz);
+JNIEXPORT jstring JNICALL Java_com_bearmod_bridge_NativeLib_getVersion(JNIEnv* env, jclass clazz);
+}
+
 int RegisterNativeLibNatives(JNIEnv *env) {
     JNINativeMethod methods[] = {
         {"initialize", "(Landroid/content/Context;)V", (void*) Java_com_bearmod_bridge_NativeLib_initialize},
