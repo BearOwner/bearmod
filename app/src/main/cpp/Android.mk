@@ -45,7 +45,7 @@ LOCAL_LDLIBS := -llog -landroid -lz
 
 # Source files (keep your exact file structure)
 LOCAL_SRC_FILES := \
-    Main.cpp \
+    bearmod.cpp \
     JNI_Bridge.cpp \
     Tools.cpp \
     md5.cpp \
