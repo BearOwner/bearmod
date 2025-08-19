@@ -71,7 +71,8 @@ LOCAL_C_INCLUDES := \
     $(LOCAL_PATH) \
     $(LOCAL_PATH)/KittyMemory \
     $(LOCAL_PATH)/Substrate \
-    $(LOCAL_PATH)/SDK
+    $(LOCAL_PATH)/SDK \
+    $(LOCAL_PATH)/MD5
 
 # Static libraries
 LOCAL_STATIC_LIBRARIES := \
