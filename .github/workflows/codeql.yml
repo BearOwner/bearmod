@@ -44,16 +44,11 @@ jobs:
             "cmake;3.22.1" \
             "ndk;27.1.12297006"
 
-      # Attempt CodeQL autobuild first
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
-
-      # Fallback: explicit build (doesn't fail workflow if autobuild already worked)
-      - name: Gradle build fallback
-        if: always()
+      # Explicit build for Android project (skip JNI validation to avoid Python dependency)
+      - name: Build (explicit for CodeQL)
         run: |
           chmod +x ./gradlew
-          ./gradlew :app:assembleDebug --stacktrace --no-daemon || true
+          ./gradlew :app:assembleDebug --stacktrace --no-daemon -x validateJNI
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
