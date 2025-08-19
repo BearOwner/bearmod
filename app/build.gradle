@@ -4,7 +4,10 @@ plugins {
     id 'org.jetbrains.kotlin.kapt'
 }
 
-apply from: '../signing.gradle'
+// Apply local signing config only if present (prevents CI dependency on local files)
+if (file('../signing.gradle').exists()) {
+    apply from: '../signing.gradle'
+}
 
 class Scrambler {
     Random random = new Random()

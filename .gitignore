@@ -20,6 +20,11 @@ signing.properties
 *.keystore
 keys/
 
+# Base64-encoded keystores or secrets (do not commit)
+*.b64
+*.b64.txt
+BearOwner.b64.txt
+
 # --- IDE files ---
 .idea/
 *.iml
