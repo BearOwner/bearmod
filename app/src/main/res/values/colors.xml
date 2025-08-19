@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ========================================= -->
+    <!-- MODERN iOS-STYLE COLOR SCHEME 2025     -->
+    <!-- ========================================= -->
+    
+    <!-- Primary Colors - Modern iOS Theme -->
+    <color name="primary">#007AFF</color> <!-- iOS Blue -->
+    <color name="primary_dark">#0056CC</color> <!-- Darker iOS Blue -->
+    <color name="primary_light">#4A9BFF</color> <!-- Lighter iOS Blue -->
+    <color name="accent">#FF9500</color> <!-- iOS Orange -->
+    <color name="accent_secondary">#FF3B30</color> <!-- iOS Red -->
+    <color name="accent_success">#30D158</color> <!-- iOS Green -->
+    
+    <!-- Background Colors - iOS Dark Style -->
+    <color name="background_primary">#1C1C1E</color> <!-- iOS Dark Primary -->
+    <color name="background_secondary">#2C2C2E</color> <!-- iOS Dark Secondary -->
+    <color name="background_surface">#2C2C2E</color> <!-- iOS Card Surface -->
+    <color name="background_surface_light">#3A3A3C</color> <!-- iOS Elevated Surface -->
+    <color name="background_surface_elevated">#3A3A3C</color> <!-- iOS Modal Background -->
+    <color name="background_glass">#1C1C1E99</color> <!-- iOS Glassmorphism -->
+    <color name="background">#131522</color>
+    <color name="background2">#BE131522</color>
+    
+    <!-- Text Colors - iOS High Contrast -->
+    <color name="text_primary">#FFFFFF</color> <!-- iOS Primary Text -->
+    <color name="text_primary_dark">#F2F2F7</color> <!-- iOS Secondary White -->
+    <color name="text_secondary">#EBEBF5</color> <!-- iOS Secondary Text -->
+    <color name="text_tertiary">#EBEBF599</color> <!-- iOS Tertiary Text -->
+    <color name="text_accent">#FF9500</color> <!-- iOS Orange Text -->
+    <color name="text_danger">#FF3B30</color> <!-- iOS Red Text -->
+    <color name="text_success">#30D158</color> <!-- iOS Green Text -->
+    
+    <!-- Button Colors - iOS System Colors -->
+    <color name="button_primary">#007AFF</color> <!-- iOS Blue Button -->
+    <color name="button_primary_pressed">#0056CC</color> <!-- Pressed iOS Blue -->
+    <color name="button_secondary">#48484A</color> <!-- iOS Gray Button -->
+    <color name="button_accent">#FF9500</color> <!-- iOS Orange Button -->
+    <color name="button_danger">#FF3B30</color> <!-- iOS Red Button -->
+    <color name="button_success">#30D158</color> <!-- iOS Green Button -->
+    <color name="button">#FF40CC7E</color> <!-- iOS Purple Button -->
+    <color name="secodary">#1E2339</color>
+    <color name="secodary2">#272E48</color>
+    <color name="red">#C52C2E</color>
+
+    <!-- Button start stop -->
+    <color name="startbtn">#A82929</color>
+    <color name="stopbtn">#0F8F42</color>
+    
+    <!-- Navigation & UI Elements - iOS Style -->
+    <color name="nav_background">#1C1C1E</color> <!-- iOS Navigation Background -->
+    <color name="nav_active">#007AFF</color> <!-- iOS Active Blue -->
+    <color name="nav_inactive">#8E8E93</color> <!-- iOS Inactive Gray -->
+    <color name="divider">#48484A</color> <!-- iOS Divider -->
+    <color name="border">#48484A</color> <!-- iOS Border -->
+    <color name="shadow">#00000060</color> <!-- iOS Shadow -->
+    
+    <!-- Toggle & Switch Colors - iOS System -->
+    <color name="switch_thumb_on">#30D158</color> <!-- iOS Green Switch -->
+    <color name="switch_thumb_off">#8E8E93</color> <!-- iOS Gray Switch -->
+    <color name="switch_track_on">#30D15880</color> <!-- iOS Green Track -->
+    <color name="switch_track_off">#48484A80</color> <!-- iOS Gray Track -->
+    
+    <!-- Stepper & Input Colors - iOS Forms -->
+    <color name="stepper_background">#2C2C2E</color> <!-- iOS Input Background -->
+    <color name="stepper_active">#007AFF</color> <!-- iOS Blue Active -->
+    <color name="input_background">#2C2C2E</color> <!-- iOS Input Background -->
+    <color name="input_border">#48484A</color> <!-- iOS Input Border -->
+    <color name="input_focus">#007AFF</color> <!-- iOS Focus Blue -->
+    
+    <!-- Status Colors - iOS System -->
+    <color name="status_online">#30D158</color> <!-- iOS Green -->
+    <color name="status_offline">#8E8E93</color> <!-- iOS Gray -->
+    <color name="status_warning">#FF9500</color> <!-- iOS Orange -->
+    <color name="status_error">#FF3B30</color> <!-- iOS Red -->
+    
+    <!-- Overlay & Modal Colors - iOS Style -->
+    <color name="overlay_background">#00000099</color> <!-- iOS Dark Overlay -->
+    <color name="modal_background">#2C2C2E</color> <!-- iOS Modal Background -->
+    <color name="card_border">#48484A</color> <!-- iOS Card Border -->
+    
+    <!-- Legacy/Compatibility Colors -->
+    <color name="transparent">#00000000</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    
+    <!-- Updated Legacy Color Mappings -->
+    <color name="menu_background">@color/background_secondary</color>
+    <color name="card_background">@color/background_surface</color>
+    <color name="primary_accent">@color/primary</color>
+    <color name="primary_accent_dark">@color/primary_dark</color>
+    <color name="primary_accent_light">@color/primary_light</color>
+    <color name="menu_card_title">@color/text_accent</color>
+    <color name="seekbar_accent_orange">@color/accent</color>
+    <color name="switch_thumb_checked">@color/switch_thumb_on</color>
+    <color name="switch_track_checked">@color/switch_track_on</color>
+    <color name="slider_track_active">@color/accent</color>
+    <color name="slider_track_inactive">@color/nav_inactive</color>
+    <color name="slider_thumb">@color/accent</color>
+    <color name="button_text">@color/text_primary</color>
+    <color name="icon_tint_normal">@color/nav_inactive</color>
+    <color name="icon_tint_active">@color/nav_active</color>
+    
+    <!-- Premium UI Colors - iOS Style -->
+    <color name="premium_background">#1C1C1E</color>
+    <color name="premium_surface">#2C2C2E</color>
+    <color name="premium_accent_red">#FF3B30</color>
+    <color name="premium_accent_green">#30D158</color>
+    <color name="premium_text_primary">#FFFFFF</color>
+    <color name="premium_text_secondary">#EBEBF5</color>
+    <color name="premium_divider">#48484A</color>
+    
+    <!-- Glass Morphism - iOS Style -->
+    <color name="glass_dark">#1C1C1E99</color>
+    <color name="glass_light">#F2F2F71A</color>
+    <color name="glass_border">#48484A40</color>
+    
+    <!-- Sidebar Colors - iOS Navigation -->
+    <color name="sidebar_background">#1C1C1E</color>
+    <color name="sidebar_item_pressed">#007AFF40</color>
+    <color name="sidebar_item_selected">#007AFF20</color>
+    
+    <!-- Tab Colors - iOS Navigation -->
+    <color name="tab_selected">#007AFF</color> <!-- iOS Blue -->
+    <color name="tab_unselected">#8E8E93</color> <!-- iOS Gray -->
+    <color name="divider_color">#48484A40</color>
+    
+    <!-- Icon Tinting Colors - iOS System -->
+    <color name="icon_active">#007AFF</color> <!-- iOS Blue for active icons -->
+    <color name="icon_inactive">#8E8E93</color> <!-- iOS Gray for inactive icons -->
+    <color name="icon_tint_premium">#FF9500</color> <!-- iOS Orange accent -->
+    <color name="icon_background_active">#007AFF30</color> <!-- Semi-transparent iOS blue -->
+    <color name="icon_background_inactive">#8E8E9320</color> <!-- Semi-transparent iOS gray -->
+    
+    <!-- iOS Light Mode Support Colors -->
+    <color name="ios_bg">#F2F2F7</color>
+    <color name="ios_card">#FFFFFF</color>
+    <color name="ios_border">#C6C6C8</color>
+    <color name="ios_shadow">#00000020</color>
+    <color name="ios_accent">#007AFF</color>
+    
+    <!-- Gaming UI Colors - iOS Dark Style -->
+    <color name="sidebar_background_dark">#1C1C1E</color>
+    <color name="sidebar_button_bg">#2C2C2E</color>
+    <color name="card_background_dark">#2C2C2E</color>
+    
+    <!-- Additional iOS System Colors -->
+    <color name="ios_blue">#FF2F68D6</color>
+    <color name="ios_green">#30D158</color>
+    <color name="ios_orange">#FF9500</color>
+    <color name="ios_red">#FF3B30</color>
+    <color name="ios_purple">#AF52DE</color>
+    <color name="ios_pink">#FF2D92</color>
+    <color name="ios_yellow">#FFCC00</color>
+    <color name="ios_gray">#8E8E93</color>
+    <color name="ios_gray2">#AEAEB2</color>
+    <color name="ios_gray3">#C7C7CC</color>
+    <color name="ios_gray4">#D1D1D6</color>
+    <color name="ios_gray5">#E5E5EA</color>
+    <color name="ios_gray6">#F2F2F7</color>
+    
+</resources>

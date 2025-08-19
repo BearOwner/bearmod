@@ -1,0 +1,256 @@
+# JNI Debugging and Crash Prevention
+
+## Overview
+This rule provides comprehensive guidance for debugging JNI issues and preventing crashes in the BearMod project. JNI errors are a common source of app crashes and must be handled carefully.
+
+## Common JNI Crash Scenarios
+
+### 1. UnsatisfiedLinkError
+**Cause**: Native method declared but not implemented
+**Solution**: 
+- Run `python jni_validator.py .` to identify missing implementations
+- Add missing JNI functions to [JNI_Bridge.cpp](mdc:app/src/main/cpp/JNI_Bridge.cpp)
+- Ensure proper registration in JNI_OnLoad
+
+### 2. JNI_FATAL_ERROR
+**Cause**: Invalid JNI calls, null pointer access, memory corruption
+**Solution**:
+- Use `GetJNIString()` and `ReleaseJNIString()` for safe string handling
+- Check for null parameters before use
+- Add proper error handling and logging
+
+### 3. ClassNotFoundException
+**Cause**: Java class not found during JNI registration
+**Solution**:
+- Verify class name in `FindClass()` calls
+- Ensure class is loaded before JNI registration
+- Check package name and class name spelling
+
+## Debugging Tools and Techniques
+
+### 1. JNI Validation Script
+```bash
+python jni_validator.py .
+```
+- Identifies missing implementations
+- Generates comprehensive report
+- Provides specific recommendations
+
+### 2. Logcat Monitoring
+Monitor these log tags for JNI issues:
+```
+adb logcat | grep -E "(BearMod|JNI|AndroidRuntime)"
+```
+
+### 3. JNI Debug Logging
+Use the logging functions in [JNI_Bridge.cpp](mdc:app/src/main/cpp/JNI_Bridge.cpp):
+```cpp
+__android_log_print(ANDROID_LOG_INFO, "BearMod", "JNI function called");
+LogJNIError(env, "function_name", "error_description");
+```
+
+## Safe JNI Implementation Patterns
+
+### 1. Null Parameter Checking
+```cpp
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_bearmod_ClassName_methodName(JNIEnv *env, jobject thiz, jstring param) {
+    if (param == nullptr) {
+        LogJNIError(env, "methodName", "Parameter is null");
+        return nullptr;
+    }
+    
+    const char* str = GetJNIString(env, param);
+    if (str == nullptr) {
+        LogJNIError(env, "methodName", "Failed to get string from JNI");
+        return nullptr;
+    }
+    
+    // ... implementation ...
+    
+    ReleaseJNIString(env, param, str);
+    return result;
+}
+```
+
+### 2. Exception Handling
+```cpp
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_bearmod_ClassName_methodName(JNIEnv *env, jobject thiz) {
+    try {
+        // ... implementation ...
+        return JNI_TRUE;
+    } catch (const std::exception& e) {
+        LogJNIError(env, "methodName", e.what());
+        return JNI_FALSE;
+    } catch (...) {
+        LogJNIError(env, "methodName", "Unknown exception");
+        return JNI_FALSE;
+    }
+}
+```
+
+### 3. Safe String Handling
+Always use the utility functions:
+```cpp
+const char* str = GetJNIString(env, jstring_param);
+if (str) {
+    // Use str safely
+    // ...
+    ReleaseJNIString(env, jstring_param, str);
+}
+```
+
+## JNI Registration Debugging
+
+### 1. Check Registration Success
+```cpp
+int RegisterFloatingNatives(JNIEnv *env) {
+    jclass clazz = env->FindClass("com/bearmod/Floating");
+    if (!clazz) {
+        LogJNIError(env, "RegisterFloatingNatives", "Could not find com.bearmod.Floating class");
+        return -1;
+    }
+
+    if (env->RegisterNatives(clazz, methods, sizeof(methods) / sizeof(methods[0])) != 0) {
+        LogJNIError(env, "RegisterFloatingNatives", "Failed to register Floating natives");
+        return -1;
+    }
+
+    __android_log_print(ANDROID_LOG_INFO, "BearMod", "Floating natives registered successfully");
+    return 0;
+}
+```
+
+### 2. JNI_OnLoad Error Handling
+```cpp
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
+    JNIEnv *env;
+    if (vm->GetEnv((void **) &env, JNI_VERSION_1_6) != JNI_OK) {
+        __android_log_print(ANDROID_LOG_ERROR, "BearMod", "Failed to get JNI environment");
+        return -1;
+    }
+
+    // Register all native methods with error checking
+    if (RegisterFloatingNatives(env) != 0) {
+        __android_log_print(ANDROID_LOG_ERROR, "BearMod", "Failed to register Floating natives");
+        return -1;
+    }
+    
+    // ... other registrations ...
+    
+    return JNI_VERSION_1_6;
+}
+```
+
+## Crash Prevention Checklist
+
+### Before Committing JNI Changes
+1. ✅ Run `python jni_validator.py .` - no missing implementations
+2. ✅ All JNI functions have proper error handling
+3. ✅ String parameters use `GetJNIString()` and `ReleaseJNIString()`
+4. ✅ Null parameter checks implemented
+5. ✅ Exception handling in place
+6. ✅ Proper logging for debugging
+7. ✅ JNI registration includes error checking
+8. ✅ Function signatures match Java declarations exactly
+
+### Runtime Monitoring
+1. Monitor logcat for JNI errors
+2. Check for UnsatisfiedLinkError exceptions
+3. Verify native library loading
+4. Test on different Android versions
+5. Test with different architectures (arm64, armv7)
+
+## Common Debugging Commands
+
+### Check Native Library Loading
+```bash
+adb logcat | grep "System.loadLibrary"
+```
+
+### Monitor JNI Registration
+```bash
+adb logcat | grep "BearMod.*registered"
+```
+
+### Check for JNI Errors
+```bash
+adb logcat | grep -E "(JNI|AndroidRuntime|FATAL)"
+```
+
+### Validate JNI Implementation
+```bash
+python jni_validator.py .
+```
+
+## Error Recovery Strategies
+
+### 1. Graceful Degradation
+If a native method fails, provide a Java fallback:
+```java
+public native String getNativeData();
+public String getData() {
+    try {
+        return getNativeData();
+    } catch (UnsatisfiedLinkError e) {
+        Log.w(TAG, "Native method not available, using fallback");
+        return getFallbackData();
+    }
+}
+```
+
+### 2. Safe Initialization
+```java
+public static void safeInit(Context context) {
+    try {
+        System.loadLibrary("bearmod");
+        Init(context);
+    } catch (UnsatisfiedLinkError e) {
+        Log.w(TAG, "Native library not available");
+    } catch (Exception e) {
+        Log.e(TAG, "Native initialization failed", e);
+    }
+}
+```
+
+## Performance Considerations
+
+### 1. Minimize JNI Calls
+- Batch operations when possible
+- Cache frequently used data
+- Use direct buffers for large data transfers
+
+### 2. Memory Management
+- Always release JNI strings
+- Avoid creating unnecessary global references
+- Use local references when possible
+
+### 3. Exception Handling Overhead
+- Only use try-catch for operations that can actually fail
+- Keep exception handling lightweight
+- Log errors but don't throw exceptions from JNI
+
+## Testing JNI Implementations
+
+### 1. Unit Testing
+- Test each JNI function individually
+- Test with null parameters
+- Test with invalid parameters
+- Test error conditions
+
+### 2. Integration Testing
+- Test complete JNI registration flow
+- Test library loading and initialization
+- Test on different devices and Android versions
+
+### 3. Stress Testing
+- Test with high frequency calls
+- Test memory pressure scenarios
+- Test concurrent access
+
+This comprehensive approach ensures robust JNI implementations that won't crash the application.
+description:
+globs:
+alwaysApply: false
+---

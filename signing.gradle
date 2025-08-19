@@ -1,0 +1,40 @@
+def loadSigningProps() {
+    def props = new Properties()
+    def propsFile = rootProject.file("signing.properties")
+    if (propsFile.exists()) {
+        props.load(propsFile.newDataInputStream())
+    }
+    return props
+}
+
+def resolveProp = { props, propName, envName, prompt ->
+    return props?.get(propName)
+        ?: System.getenv(envName)
+        ?: System.console()?.readLine("\n$prompt: ")
+}
+
+android {
+    signingConfigs {
+        release {
+            def props = loadSigningProps()
+            storeFile = resolveProp(props, "storeFile", "STORE_FILE", "Store file")?.with(rootProject.&file)
+            storePassword = resolveProp(props, "storePassword", "STORE_PASSWORD", "Store password")
+            keyAlias = resolveProp(props, "keyAlias", "KEY_ALIAS", "Key alias")
+            keyPassword = resolveProp(props, "keyPassword", "KEY_PASSWORD", "Key password")
+
+            v1SigningEnabled = true
+            v2SigningEnabled = true
+        }
+
+        debug {
+            def props = loadSigningProps()
+            storeFile = resolveProp(props, "storeFile", "STORE_FILE", "Store file")?.with(rootProject.&file)
+            storePassword = resolveProp(props, "storePassword", "STORE_PASSWORD", "Store password")
+            keyAlias = resolveProp(props, "keyAlias", "KEY_ALIAS", "Key alias")
+            keyPassword = resolveProp(props, "keyPassword", "KEY_PASSWORD", "Key password")
+
+            v1SigningEnabled = true
+            v2SigningEnabled = true
+        }
+    }
+}

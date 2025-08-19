@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Base Crimson Gradient -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#B71C1C"
+            android:endColor="#7B0F0F"
+            />
+        </shape>
+    </item>
+
+    <!-- Golden Radial Glow (centered near top) -->
+    <item android:top="0dp" android:bottom="0dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="400dp"
+                android:centerX="0.5"
+                android:centerY="0.35"
+                android:startColor="#33FFD700"
+            android:endColor="#00FFD700"
+            />
+        </shape>
+    </item>
+
+    <!-- Subtle overlay pattern -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="45"
+                android:startColor="#10FFFFFF"
+                android:endColor="#05FFFFFF"
+                />
+        </shape>
+    </item>
+
+</layer-list>

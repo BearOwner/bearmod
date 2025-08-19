@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Checked State -->
+    <item android:state_checked="true">
+        <layer-list>
+            <!-- Background -->
+            <item>
+                <shape android:shape="rectangle">
+                    <size android:width="24dp" android:height="24dp" />
+                    <solid android:color="#4299E1" />
+                    <corners android:radius="4dp" />
+                    <stroke android:width="2dp" android:color="#3182CE" />
+                </shape>
+            </item>
+            <!-- Checkmark - Simple white circle for visibility -->
+            <item android:top="6dp" android:left="6dp" android:right="6dp" android:bottom="6dp">
+                <shape android:shape="oval">
+                    <solid android:color="#FFFFFF" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <!-- Unchecked State -->
+    <item>
+        <shape android:shape="rectangle">
+            <size android:width="24dp" android:height="24dp" />
+            <solid android:color="#2D3748" />
+            <corners android:radius="4dp" />
+            <stroke android:width="2dp" android:color="#A0AEC0" />
+        </shape>
+    </item>
+
+</selector>

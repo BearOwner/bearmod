@@ -1,0 +1,25 @@
+---
+description: Launcher.java removal migration and safe init entrypoint guidance
+---
+### Launcher removal migration
+
+Current state:
+- `Launcher.java` has been removed; the only valid init entrypoint is `LoginActivity.safeInit(Context)`
+- `MundoCore.init(...)` invokes `LoginActivity.safeInit` and does not reflect on `Launcher`
+- JNI registrations in [Main.cpp](mdc:app/src/main/cpp/Main.cpp) target:
+  - `com/bearmod/activity/LoginActivity` → `Init(Context)` and `updateAuthenticationState(...)`
+  - `com/bearmod/Floating` native bindings
+
+Checklist when touching init:
+1) Ensure `LoginActivity.safeInit(Context)` remains callable statically and attempts native `Init(Context)` safely
+2) Keep `MundoCore` calling only `LoginActivity.safeInit` (no `Launcher` fallback)
+3) Verify no residual references:
+   - Search for `com.bearmod.Launcher` in Java/Kotlin and C++
+   - ProGuard: keep rules should not keep `Launcher` unless a legacy build needs it
+
+When to add a shim:
+- Only if a legacy native lib or third-party module reflects `com.bearmod.Launcher.safeInit(Context)`
+- Minimal shim (if required): class `com.bearmod.Launcher` with a static `safeInit(Context)` that forwards to `LoginActivity.safeInit(Context)` and no other logic
+
+Do NOT restore the old, stateful `Launcher`. Prefer a stateless forwarder if binary compatibility is strictly required.
+

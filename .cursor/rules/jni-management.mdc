@@ -1,0 +1,169 @@
+# JNI Management for BearMod Project
+
+## Overview
+This rule provides comprehensive guidance for managing JNI (Java Native Interface) implementations in the BearMod project. The project uses a centralized JNI bridge system to ensure consistency and prevent missing implementations.
+
+## Key Files
+
+### Core JNI Files
+- [JNI_Bridge.h](mdc:app/src/main/cpp/JNI_Bridge.h) - Central header with all JNI function declarations
+- [JNI_Bridge.cpp](mdc:app/src/main/cpp/JNI_Bridge.cpp) - Implementation file with all JNI functions and registration
+- [Main.cpp](mdc:app/src/main/cpp/Main.cpp) - Legacy JNI registration (being migrated to JNI_Bridge)
+
+### Java Classes with Native Methods
+- [Floating.java](mdc:app/src/main/java/com/bearmod/Floating.java) - Main service with multiple native methods
+- [LoginActivity.java](mdc:app/src/main/java/com/bearmod/activity/LoginActivity.java) - Authentication native methods
+- [SimpleLicenseVerifier.java](mdc:app/src/main/java/com/bearmod/auth/SimpleLicenseVerifier.java) - License verification
+- [NonRootPatchManager.java](mdc:app/src/main/java/com/bearmod/patch/NonRootPatchManager.java) - Patch injection methods
+
+### Validation Tools
+- [jni_validator.py](mdc:jni_validator.py) - Comprehensive JNI validation script
+- [jni_checker.py](mdc:jni_checker.py) - Simple JNI checker
+
+## JNI Implementation Guidelines
+
+### 1. Function Naming Convention
+All JNI functions must follow the standard naming convention:
+```
+Java_package_name_class_name_method_name
+```
+
+Example: `Java_com_bearmod_Floating_onlinename`
+
+### 2. Function Signature Requirements
+- Must include `extern "C" JNIEXPORT`
+- Return type must match Java declaration
+- Must include `JNICALL` and proper parameter types
+- First parameter must be `JNIEnv *env`
+- Second parameter must be `jobject thiz` (instance methods) or `jclass clazz` (static methods)
+
+### 3. String Handling
+Always use the utility functions for safe string handling:
+```cpp
+const char* str = GetJNIString(env, jstring_param);
+// ... use str ...
+ReleaseJNIString(env, jstring_param, str);
+```
+
+### 4. Error Handling
+- Check for null parameters
+- Use `LogJNIError()` for error logging
+- Return appropriate JNI values (JNI_TRUE/JNI_FALSE for booleans)
+- Handle exceptions properly
+
+### 5. Registration Process
+All JNI functions must be registered in [JNI_Bridge.cpp](mdc:app/src/main/cpp/JNI_Bridge.cpp):
+
+1. Add function declaration to [JNI_Bridge.h](mdc:app/src/main/cpp/JNI_Bridge.h)
+2. Add function implementation to [JNI_Bridge.cpp](mdc:app/src/main/cpp/JNI_Bridge.cpp)
+3. Add registration entry in appropriate `Register*Natives()` function
+4. Update JNI_OnLoad to call the registration function
+
+## Common JNI Patterns
+
+### String Return Functions
+```cpp
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_bearmod_ClassName_methodName(JNIEnv *env, jobject thiz) {
+    return env->NewStringUTF(OBFUSCATE("return_value"));
+}
+```
+
+### Boolean Return Functions
+```cpp
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_bearmod_ClassName_methodName(JNIEnv *env, jobject thiz) {
+    return JNI_TRUE; // or JNI_FALSE
+}
+```
+
+### Void Functions with Parameters
+```cpp
+extern "C" JNIEXPORT void JNICALL
+Java_com_bearmod_ClassName_methodName(JNIEnv *env, jobject thiz, jstring param) {
+    const char* str = GetJNIString(env, param);
+    // ... implementation ...
+    ReleaseJNIString(env, param, str);
+}
+```
+
+## Validation Process
+
+### Running JNI Validation
+```bash
+python jni_validator.py .
+```
+
+This will:
+- Scan all Java files for native method declarations
+- Scan all C++ files for JNI implementations
+- Generate a comprehensive report
+- Identify missing implementations
+- Provide recommendations
+
+### Expected Output
+- ✅ All JNI methods have implementations
+- ❌ Found X missing JNI implementations (if issues exist)
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Missing Implementation**
+   - Add function to [JNI_Bridge.cpp](mdc:app/src/main/cpp/JNI_Bridge.cpp)
+   - Register in appropriate `Register*Natives()` function
+
+2. **Signature Mismatch**
+   - Ensure Java declaration matches C++ implementation
+   - Check parameter types and return types
+
+3. **Registration Failure**
+   - Verify class name in `FindClass()`
+   - Check method signature in `RegisterNatives()`
+   - Ensure function pointer is correct
+
+4. **String Memory Leaks**
+   - Always use `GetJNIString()` and `ReleaseJNIString()`
+   - Check for null pointers before using
+
+### Debug Steps
+1. Run `python jni_validator.py .` to identify issues
+2. Check logcat for JNI registration errors
+3. Verify function names match exactly
+4. Ensure all required headers are included
+
+## Migration from Legacy System
+
+The project is migrating from scattered JNI implementations to a centralized system:
+
+1. **Legacy**: Functions scattered across multiple files
+2. **Current**: Centralized in [JNI_Bridge.h](mdc:app/src/main/cpp/JNI_Bridge.h) and [JNI_Bridge.cpp](mdc:app/src/main/cpp/JNI_Bridge.cpp)
+3. **Future**: Complete migration with proper error handling and validation
+
+## Best Practices
+
+1. **Always validate** after adding new native methods
+2. **Use utility functions** for string handling
+3. **Add proper logging** for debugging
+4. **Handle errors gracefully** with appropriate return values
+5. **Keep implementations simple** and focused
+6. **Document complex implementations** with comments
+7. **Test thoroughly** before committing changes
+
+## File Organization
+
+```
+app/src/main/cpp/
+├── JNI_Bridge.h          # All JNI declarations
+├── JNI_Bridge.cpp        # All JNI implementations and registration
+├── Main.cpp              # Legacy JNI (being migrated)
+├── NRG.h                 # Game-specific implementations
+├── MOD/LOGO.h           # UI-specific implementations
+└── nonroot/             # Non-root specific implementations
+```
+
+This centralized approach ensures consistency, prevents missing implementations, and makes maintenance easier.
+description:
+globs:
+alwaysApply: false
+---

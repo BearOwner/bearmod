@@ -1,0 +1,16 @@
+-- Merging decision tree log ---
+manifest
+ADDED from D:\injector\bearmod\mundo_core\build\intermediates\tmp\ProcessLibraryManifest\release\tempAndroidManifest8690309480355036290.xml:2:13-83
+INJECTED from D:\injector\bearmod\mundo_core\build\intermediates\tmp\ProcessLibraryManifest\release\tempAndroidManifest8690309480355036290.xml:2:13-83
+	package
+		INJECTED from D:\injector\bearmod\mundo_core\build\intermediates\tmp\ProcessLibraryManifest\release\tempAndroidManifest8690309480355036290.xml
+	xmlns:android
+		ADDED from D:\injector\bearmod\mundo_core\build\intermediates\tmp\ProcessLibraryManifest\release\tempAndroidManifest8690309480355036290.xml:2:23-81
+uses-sdk
+INJECTED from D:\injector\bearmod\mundo_core\build\intermediates\tmp\ProcessLibraryManifest\release\tempAndroidManifest8690309480355036290.xml reason: use-sdk injection requested
+INJECTED from D:\injector\bearmod\mundo_core\build\intermediates\tmp\ProcessLibraryManifest\release\tempAndroidManifest8690309480355036290.xml
+INJECTED from D:\injector\bearmod\mundo_core\build\intermediates\tmp\ProcessLibraryManifest\release\tempAndroidManifest8690309480355036290.xml
+	android:targetSdkVersion
+		INJECTED from D:\injector\bearmod\mundo_core\build\intermediates\tmp\ProcessLibraryManifest\release\tempAndroidManifest8690309480355036290.xml
+	android:minSdkVersion
+		INJECTED from D:\injector\bearmod\mundo_core\build\intermediates\tmp\ProcessLibraryManifest\release\tempAndroidManifest8690309480355036290.xml

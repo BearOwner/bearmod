@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Disabled State -->
+    <item android:state_enabled="false">
+        <layer-list>
+            <!-- Shadow -->
+            <item android:top="4dp" android:left="2dp" android:right="2dp" android:bottom="2dp">
+                <shape android:shape="rectangle">
+                    <solid android:color="#20000000" />
+                    <corners android:radius="20dp" />
+                </shape>
+            </item>
+            <!-- Button Background -->
+            <item android:top="0dp" android:left="0dp" android:right="4dp" android:bottom="4dp">
+                <shape android:shape="rectangle">
+                    <gradient
+                        android:type="linear"
+                        android:angle="135"
+                        android:startColor="#3A3A3C"
+                        android:endColor="#2C2C2E" />
+                    <corners android:radius="20dp" />
+                    <stroke 
+                        android:width="1dp" 
+                        android:color="@color/premium_divider" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    
+    <!-- Pressed State -->
+    <item android:state_pressed="true">
+        <layer-list>
+            <!-- Shadow -->
+            <item android:top="4dp" android:left="2dp" android:right="2dp" android:bottom="2dp">
+                <shape android:shape="rectangle">
+                    <solid android:color="#60000000" />
+                    <corners android:radius="20dp" />
+                </shape>
+            </item>
+            <!-- Button Background -->
+            <item android:top="2dp" android:left="0dp" android:right="4dp" android:bottom="4dp">
+                <shape android:shape="rectangle">
+                    <gradient
+                        android:type="linear"
+                        android:angle="135"
+                        android:startColor="#C82333"
+                        android:endColor="#A71E2A" />
+                    <corners android:radius="20dp" />
+                    <stroke 
+                        android:width="2dp" 
+                        android:color="@color/premium_accent_red" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    
+    <!-- Normal State -->
+    <item>
+        <layer-list>
+            <!-- Shadow -->
+            <item android:top="4dp" android:left="2dp" android:right="2dp" android:bottom="2dp">
+                <shape android:shape="rectangle">
+                    <solid android:color="#40000000" />
+                    <corners android:radius="20dp" />
+                </shape>
+            </item>
+            <!-- Button Background -->
+            <item android:top="0dp" android:left="0dp" android:right="4dp" android:bottom="4dp">
+                <shape android:shape="rectangle">
+                    <gradient
+                        android:type="linear"
+                        android:angle="135"
+                        android:startColor="@color/premium_accent_red"
+                        android:endColor="#C82333" />
+                    <corners android:radius="20dp" />
+                    <stroke 
+                        android:width="2dp" 
+                        android:color="#FF5B70" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    
+</selector>

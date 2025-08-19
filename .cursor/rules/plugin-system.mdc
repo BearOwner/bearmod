@@ -1,0 +1,44 @@
+---
+globs: app/src/main/java/com/bearmod/plugin/**,app/src/main/java/com/bearmod/patch/**,mundo_core/src/main/java/com/bearmod/mundo/**
+---
+### Plugin system overview
+
+BearMod initializes its plugin and script system during app startup. The flow is:
+
+1) Splash boots MundoCore, which loads native libs and performs bootstrap
+2) MundoCore prepares the scripts directory and loads plugins
+3) Activities can query/execute loaded plugins
+
+Key files:
+
+- Mundo bootstrap: [MundoCore.java](mdc:mundo_core/src/main/java/com/bearmod/mundo/MundoCore.java)
+  - Loads native libs and calls `safeInit` (prefers `LoginActivity.safeInit`, falls back to `Launcher.safeInit`)
+  - Prepares scripts via `SecureScriptManager.initializeScriptsDirectory()`
+  - Loads plugins via `PluginLoader.loadPlugins()` and sets readiness state
+
+- Plugins: [PluginLoader.java](mdc:app/src/main/java/com/bearmod/plugin/PluginLoader.java)
+  - `loadPlugins()` chooses debug vs production loading
+  - Debug: reads from `App/ExternalFiles/Scripts/<patchId>/script.js`
+  - Production: loads embedded resources via `SecureScriptManager`
+  - `executePlugins(targetPackage)` runs compatible plugins for the selected target
+
+- Script loading: [SecureScriptManager.java](mdc:app/src/main/java/com/bearmod/patch/SecureScriptManager.java)
+  - Debug: `Scripts` directory mirroring assets; optional fallback to `assets/patches/<id>/script.js`
+  - Release: reads encrypted raw resources (e.g., `R.raw.script_bypass_ssl`) and decrypts
+  - `initializeScriptsDirectory()` creates the debug folder structure
+
+- Activity wiring:
+  - [SplashActivity.java](mdc:app/src/main/java/com/bearmod/activity/SplashActivity.java) waits on `MundoCore.isReady()`
+  - [MainActivity.java](mdc:app/src/main/java/com/bearmod/activity/MainActivity.java) calls `SecureScriptManager.initializeScriptsDirectory()` and `PluginLoader.loadPlugins()` in `initializeManagers()`
+
+Common functions and responsibilities:
+
+- `MundoCore.init(Application, MundoConfig)` → native load, plugin bootstrap, readiness flag
+- `SecureScriptManager.loadScript(patchId)` → returns script content (debug dir → assets → secure raw)
+- `PluginLoader.loadPlugins()` → populates plugin registry; `getCompatiblePlugins(pkg)` and `executePlugins(pkg)`
+
+Notes / gotchas:
+
+- If `Launcher.safeInit` class is absent, MundoCore falls back to `LoginActivity.safeInit` and continues without hard fail
+- If no production raw scripts exist, plugins still load in debug via `Scripts` folder or assets
+

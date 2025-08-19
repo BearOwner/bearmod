@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/splash_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <!-- Bear logo container for rotation animation -->
+    <FrameLayout
+        android:id="@+id/logo_container"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="140dp">
+
+        <ImageView
+            android:id="@+id/logo"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/bear_logo"/>
+
+        <!-- Circular progress around logo -->
+        <ProgressBar
+            android:id="@+id/logo_progress"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:indeterminate="true"
+            android:indeterminateTint="@color/background_glass"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:rotation="-90"
+            android:background="@android:color/transparent"/>
+    </FrameLayout>
+
+    <!-- BEAR-ENGINE text -->
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/logo_container"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="30dp"
+        android:text="BEAR-ENGINE"
+        android:textColor="#FFFFFF"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        android:alpha="0"
+        tools:ignore="HardcodedText" />
+
+    <!-- Status text -->
+    <TextView
+        android:id="@+id/status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/title"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="16dp"
+        android:text="Initializing..."
+        android:textColor="#4CAF50"
+        android:textSize="16sp"
+        android:alpha="0"
+        tools:ignore="HardcodedText" />
+</RelativeLayout> 

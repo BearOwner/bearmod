@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bearmod_login_background">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:fitsSystemWindows="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:padding="24dp">
+
+            <!-- Card Container -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/background_trans"
+                android:padding="24dp"
+                android:elevation="8dp"
+                android:layout_marginTop="48dp"
+                android:layout_marginBottom="48dp"
+                android:clipToPadding="false"
+                android:layout_gravity="center">
+
+                <!-- Logo -->
+                <ImageView
+                    android:layout_width="100dp"
+                    android:layout_height="100dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/icon"
+                    android:scaleType="centerInside"
+                    android:layout_marginBottom="24dp" />
+
+                <!-- Title -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/login_to_continue"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05"
+                    android:layout_gravity="center"
+                    android:layout_marginBottom="32dp" />
+
+                <!-- License Key Input -->
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp">
+
+                    <EditText
+                        android:id="@+id/edit_license_key"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:hint="Enter License Key"
+                        android:inputType="text"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="56dp"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_secondary"
+                        android:background="@drawable/bearmod_input_background"
+                        android:imeOptions="actionDone"
+                        android:textSize="16sp"
+                        tools:ignore="HardcodedText" />
+
+                    <ImageButton
+                        android:id="@+id/button_copy_paste"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:background="@drawable/background_trans"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/content_copy"
+                        android:contentDescription="Copy/Paste License Key" />
+                </RelativeLayout>
+
+                <!-- Remember Key -->
+                <CheckBox
+                    android:id="@+id/checkbox_remember_key"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Remember Key"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="15sp"
+                    android:button="@drawable/ic_check_circle_green_24dp"
+                    android:paddingStart="8dp"
+                    android:layout_marginBottom="8dp"
+                    tools:ignore="RtlSymmetry,HardcodedText" />
+
+                <!-- Auto Login -->
+                <CheckBox
+                    android:id="@+id/checkbox_auto_login"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Automatic login"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="15sp"
+                    android:button="@drawable/ic_check_circle_green_24dp"
+                    android:paddingStart="8dp"
+                    android:layout_marginBottom="24dp"
+                    tools:ignore="RtlSymmetry,HardcodedText" />
+
+                <!-- Login Button -->
+                <Button
+                    android:id="@+id/button_login"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="@string/login"
+                    android:textColor="@color/text_primary"
+                    android:background="@drawable/bearmod_login_button"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:elevation="6dp"
+                    android:layout_marginBottom="16dp" />
+
+                <!-- Status Text -->
+                <TextView
+                    android:id="@+id/status_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/verifying"
+                    android:textColor="@color/ios_yellow"
+                    android:textSize="14sp"
+                    android:visibility="gone"
+                    android:layout_gravity="center" />
+
+                <!-- Progress Bar -->
+                <ProgressBar
+                    android:id="@+id/progress_bar"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:indeterminateTint="@color/ios_yellow"
+                    android:layout_gravity="center"
+                    android:visibility="gone" />
+
+                <!-- Version -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="0dp"
+                    android:layout_marginTop="32dp"
+                    android:text="@string/_1_3_0"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="15sp"
+                    android:layout_gravity="center"
+                    android:layout_weight="1.0"
+                    android:gravity="center"
+                    tools:ignore="HardcodedText" />
+
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+</RelativeLayout>

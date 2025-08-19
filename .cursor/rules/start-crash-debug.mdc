@@ -1,0 +1,31 @@
+---
+description: Debugging START-menu crashes and readiness issues
+---
+### START menu crash triage
+
+If the app crashes after "Starting mod service...":
+
+1) Readiness check
+   - `MainActivity.startModService()` now guards with `MundoCore.isReady()` and shows a toast if not ready
+   - Ensure bootstrap sets readiness in [MundoCore.java](mdc:mundo_core/src/main/java/com/bearmod/mundo/MundoCore.java) after `PluginLoader.loadPlugins()`
+
+2) Native init
+   - `LoginActivity.safeInit(Context)` attempts to load `bearmod` and call `Init(Context)` safely
+   - There is no `Launcher.java`; all init must flow through `LoginActivity`
+
+3) Service and permissions
+   - Service: [Floating.java](mdc:app/src/main/java/com/bearmod/Floating.java), Manifest entry under `<service android:name="com.bearmod.Floating" ...>`
+   - Ensure overlay/storage/unknown sources permissions pass before starting
+
+4) Auto-patch side effects
+   - Starting may trigger auto-patches via `AutoPatchManager`
+   - Check logs from `FridaPatchManager`/`NonRootPatchManager` for failures
+
+5) Logs to filter
+   - TAGs: `MainActivity`, `BearMod.MundoCore`, `PluginLoader`, `SecureScriptManager`, `FridaPatchManager`, `NonRootPatchManager`, `LoginActivity`
+
+Common fixes:
+- Wait for readiness (Splash waits; MainActivity guards start)
+- Ensure scripts exist in debug: `App/ExternalFiles/Scripts/<patchId>/script.js` or assets fallback
+- Avoid calling native methods from `Floating` until init has completed
+

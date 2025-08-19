@@ -1,0 +1,545 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/premium_background">
+
+    <!-- Splash Screen Layout -->
+    <LinearLayout
+        android:id="@+id/splash_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="32dp"
+        android:background="@color/premium_background">
+
+        <!-- Logo Container -->
+        <FrameLayout
+            android:id="@+id/logo_container"
+            android:layout_width="140dp"
+            android:layout_height="140dp"
+            android:layout_marginBottom="24dp">
+
+            <!-- Logo Background Circle -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/bearmod_logo_circle" />
+
+            <!-- Logo Image -->
+            <ImageView
+                android:id="@+id/logo"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:layout_gravity="center"
+                android:src="@drawable/icon"
+                android:scaleType="centerInside" />
+
+            <!-- Progress Ring -->
+            <ProgressBar
+                android:id="@+id/logo_progress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_margin="4dp"
+                android:indeterminateTint="@color/premium_accent_green"
+                android:progressTint="@color/premium_accent_green"
+                android:max="100"
+                android:progress="0" />
+
+        </FrameLayout>
+
+        <!-- App Title -->
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="BEARMOD"
+            android:textColor="@color/premium_text_primary"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.15"
+            android:layout_marginBottom="8dp"
+            tools:ignore="HardcodedText" />
+
+        <!-- Status Text -->
+        <TextView
+            android:id="@+id/status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Starting mod..."
+            android:textColor="@color/premium_accent_green"
+            android:textSize="16sp"
+            android:layout_marginBottom="32dp"
+            tools:ignore="HardcodedText" />
+
+    </LinearLayout>
+
+    <!-- Modern Main App Layout -->
+    <ScrollView
+        android:id="@+id/main_app_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/premium_background"
+        android:visibility="gone"
+        android:alpha="0"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Countdown Timer Section -->
+            <LinearLayout
+                android:id="@+id/countdown_section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:background="@drawable/modern_card_background"
+                android:padding="16dp"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:id="@+id/countdown_days"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="04"
+                    android:textColor="@color/premium_text_primary"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:minWidth="40dp"
+                    android:gravity="center"
+                    tools:ignore="HardcodedText" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=":"
+                    android:textColor="@color/premium_text_secondary"
+                    android:textSize="24sp"
+                    android:layout_marginHorizontal="4dp"
+                    tools:ignore="HardcodedText" />
+
+                <TextView
+                    android:id="@+id/countdown_hours"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="16"
+                    android:textColor="@color/premium_text_primary"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:minWidth="40dp"
+                    android:gravity="center"
+                    tools:ignore="HardcodedText" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=":"
+                    android:textColor="@color/premium_text_secondary"
+                    android:textSize="24sp"
+                    android:layout_marginHorizontal="4dp"
+                    tools:ignore="HardcodedText" />
+
+                <TextView
+                    android:id="@+id/countdown_minutes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="17"
+                    android:textColor="@color/premium_text_primary"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:minWidth="40dp"
+                    android:gravity="center"
+                    tools:ignore="HardcodedText" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=":"
+                    android:textColor="@color/premium_text_secondary"
+                    android:textSize="24sp"
+                    android:layout_marginHorizontal="4dp"
+                    tools:ignore="HardcodedText" />
+
+                <TextView
+                    android:id="@+id/countdown_seconds"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="29"
+                    android:textColor="@color/premium_text_primary"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:minWidth="40dp"
+                    android:gravity="center"
+                    tools:ignore="HardcodedText" />
+
+            </LinearLayout>
+
+            <!-- Central Bear Logo -->
+            <FrameLayout
+                android:layout_width="160dp"
+                android:layout_height="160dp"
+                android:layout_gravity="center"
+                android:layout_marginVertical="24dp">
+
+                <!-- Logo Background Circle -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bearmod_logo_circle" />
+
+                <!-- Logo Image -->
+                <ImageView
+                    android:id="@+id/main_logo"
+                    android:layout_width="120dp"
+                    android:layout_height="120dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/icon"
+                    android:scaleType="centerInside" />
+
+            </FrameLayout>
+
+            <!-- START/STOP Menu Buttons -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginBottom="24dp">
+
+                <Button
+                    android:id="@+id/start_button"
+                    android:layout_width="0dp"
+                    android:layout_height="56dp"
+                    android:layout_weight="1"
+                    android:text="START MENU"
+                    android:textColor="@color/premium_text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:background="@drawable/modern_start_button"
+                    android:layout_marginEnd="8dp"
+                    android:enabled="true"
+                    tools:ignore="HardcodedText" />
+
+                <Button
+                    android:id="@+id/stop_button"
+                    android:layout_width="0dp"
+                    android:layout_height="56dp"
+                    android:layout_weight="1"
+                    android:text="STOP MENU"
+                    android:textColor="@color/premium_text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:background="@drawable/modern_stop_button"
+                    android:layout_marginStart="8dp"
+                    android:enabled="false"
+                    tools:ignore="HardcodedText" />
+
+            </LinearLayout>
+
+            <!-- Region Selection Grid -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/modern_card_background"
+                android:padding="16dp"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="REGION SELECTION"
+                    android:textColor="@color/premium_text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="12dp"
+                    tools:ignore="HardcodedText" />
+
+                <GridLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:columnCount="3"
+                    android:rowCount="2"
+                    android:alignmentMode="alignBounds"
+                    android:useDefaultMargins="true">
+
+                    <Button
+                        android:id="@+id/region_global"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_columnWeight="1"
+                        android:text="GLOBAL"
+                        android:textColor="@color/premium_text_primary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:background="@drawable/modern_region_button"
+                        android:layout_margin="4dp"
+                        tools:ignore="HardcodedText" />
+
+                    <Button
+                        android:id="@+id/region_korea"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_columnWeight="1"
+                        android:text="KOREA"
+                        android:textColor="@color/premium_text_primary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:background="@drawable/modern_region_button"
+                        android:layout_margin="4dp"
+                        tools:ignore="HardcodedText" />
+
+                    <Button
+                        android:id="@+id/region_vietnam"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_columnWeight="1"
+                        android:text="VIETNAM"
+                        android:textColor="@color/premium_text_primary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:background="@drawable/modern_region_button"
+                        android:layout_margin="4dp"
+                        tools:ignore="HardcodedText" />
+
+                    <Button
+                        android:id="@+id/region_taiwan"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_columnWeight="1"
+                        android:text="TAIWAN"
+                        android:textColor="@color/premium_text_primary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:background="@drawable/modern_region_button"
+                        android:layout_margin="4dp"
+                        tools:ignore="HardcodedText" />
+
+                    <Button
+                        android:id="@+id/region_india"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_columnWeight="1"
+                        android:text="INDIA"
+                        android:textColor="@color/premium_text_primary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:background="@drawable/modern_region_button"
+                        android:layout_margin="4dp"
+                        tools:ignore="HardcodedText" />
+
+                </GridLayout>
+
+            </LinearLayout>
+
+            <!-- Default/Kernel Options -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginBottom="16dp">
+
+                <Button
+                    android:id="@+id/option_default"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="Default"
+                    android:textColor="@color/premium_text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:background="@drawable/modern_option_button"
+                    android:layout_marginEnd="8dp"
+                    tools:ignore="HardcodedText" />
+
+                <Button
+                    android:id="@+id/option_kernel"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="Kernel"
+                    android:textColor="@color/premium_text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:background="@drawable/modern_option_button"
+                    android:layout_marginStart="8dp"
+                    tools:ignore="HardcodedText" />
+
+            </LinearLayout>
+
+            <!-- Auto-Detection Display -->
+            <LinearLayout
+                android:id="@+id/server_section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/modern_card_background"
+                android:padding="16dp"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:id="@+id/server_status"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="SERVER GLOBAL"
+                    android:textColor="@color/premium_text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    tools:ignore="HardcodedText" />
+
+                <ImageView
+                    android:id="@+id/detection_status_icon"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_check_circle"
+                    app:tint="@color/premium_accent_green" />
+
+            </LinearLayout>
+
+            <!-- Status Indicators -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:id="@+id/safe_status"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="✓ Safe"
+                    android:textColor="@color/premium_accent_green"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:background="@drawable/modern_status_safe"
+                    android:padding="8dp"
+                    android:layout_marginEnd="8dp"
+                    tools:ignore="HardcodedText" />
+
+                <TextView
+                    android:id="@+id/unsafe_status"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="✗ Unsafe"
+                    android:textColor="@color/premium_accent_red"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:background="@drawable/modern_status_unsafe"
+                    android:padding="8dp"
+                    android:layout_marginStart="8dp"
+                    android:visibility="gone"
+                    tools:ignore="HardcodedText" />
+
+            </LinearLayout>
+
+            <!-- Service Status -->
+            <TextView
+                android:id="@+id/service_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Service Status: Ready"
+                android:textColor="@color/premium_text_secondary"
+                android:textSize="14sp"
+                android:textAlignment="center"
+                android:layout_marginBottom="16dp"
+                tools:ignore="HardcodedText" />
+
+            <!-- Hidden Target Status Text (for compatibility) -->
+            <TextView
+                android:id="@+id/target_status_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:visibility="gone"
+                tools:ignore="HardcodedText" />
+
+            <!-- Hidden Spinner (for compatibility) -->
+            <Spinner
+                android:id="@+id/target_bundle_spinner"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
+
+            <!-- Bottom Navigation -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:background="@drawable/modern_card_background"
+                android:padding="12dp"
+                android:layout_marginTop="16dp">
+
+                <Button
+                    android:id="@+id/nav_home"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="Home"
+                    android:textColor="@color/premium_text_primary"
+                    android:textSize="12sp"
+                    android:background="@drawable/modern_nav_button"
+                    android:layout_marginHorizontal="4dp"
+                    tools:ignore="HardcodedText" />
+
+                <Button
+                    android:id="@+id/nav_settings"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="Settings"
+                    android:textColor="@color/premium_text_secondary"
+                    android:textSize="12sp"
+                    android:background="@drawable/modern_nav_button"
+                    android:layout_marginHorizontal="4dp"
+                    tools:ignore="HardcodedText" />
+
+                <Button
+                    android:id="@+id/nav_other"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="Other"
+                    android:textColor="@color/premium_text_secondary"
+                    android:textSize="12sp"
+                    android:background="@drawable/modern_nav_button"
+                    android:layout_marginHorizontal="4dp"
+                    tools:ignore="HardcodedText" />
+
+            </LinearLayout>
+
+            <!-- Hidden Exit Button (for compatibility) -->
+            <Button
+                android:id="@+id/exit_button"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
+
+            <!-- Hidden Welcome Text (for compatibility) -->
+            <TextView
+                android:id="@+id/welcome_text"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+    </ScrollView>
+
+</FrameLayout>

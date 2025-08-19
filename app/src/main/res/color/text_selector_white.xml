@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Selected state - bright white -->
+    <item android:state_selected="true" android:color="@color/text_primary" />
+    
+    <!-- Pressed state - bright white -->
+    <item android:state_pressed="true" android:color="@color/text_primary" />
+    
+    <!-- Active state - bright white -->
+    <item android:state_activated="true" android:color="@color/text_primary" />
+    
+    <!-- Enabled state - slightly dimmed white -->
+    <item android:state_enabled="true" android:color="@color/text_secondary" />
+    
+    <!-- Default state - dimmed white -->
+    <item android:color="@color/text_tertiary" />
+    
+</selector> 

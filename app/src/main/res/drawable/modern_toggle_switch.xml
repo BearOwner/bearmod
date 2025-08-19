@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Checked/ON State -->
+    <item android:state_checked="true">
+        <layer-list>
+            <!-- Track Shadow -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="16dp" />
+                    <solid android:color="@color/shadow" />
+                </shape>
+            </item>
+            <!-- Track -->
+            <item
+                android:left="0dp"
+                android:top="0dp"
+                android:right="1dp"
+                android:bottom="2dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="16dp" />
+                    <solid android:color="@color/switch_track_on" />
+                    <stroke
+                        android:width="1dp"
+                        android:color="@color/accent" />
+                </shape>
+            </item>
+            <!-- Glow Effect -->
+            <item
+                android:left="0dp"
+                android:top="0dp"
+                android:right="1dp"
+                android:bottom="2dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="16dp" />
+                    <gradient
+                        android:startColor="#30F59E0B"
+                        android:endColor="#00F59E0B"
+                        android:angle="90" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    
+    <!-- Unchecked/OFF State -->
+    <item>
+        <layer-list>
+            <!-- Track Shadow -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="16dp" />
+                    <solid android:color="@color/shadow" />
+                </shape>
+            </item>
+            <!-- Track -->
+            <item
+                android:left="0dp"
+                android:top="0dp"
+                android:right="1dp"
+                android:bottom="2dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="16dp" />
+                    <solid android:color="@color/switch_track_off" />
+                    <stroke
+                        android:width="1dp"
+                        android:color="@color/border" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</selector> 

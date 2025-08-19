@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@color/premium_background">
+
+    <!-- Error Icon and Type -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp">
+
+        <ImageView
+            android:id="@+id/error_icon"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_error"
+            android:layout_marginEnd="12dp"
+            app:tint="@color/accent_secondary" />
+
+        <TextView
+            android:id="@+id/error_type_text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Error Type"
+            android:textColor="@color/premium_accent_red"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+    <!-- Error Message -->
+    <TextView
+        android:id="@+id/error_message_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Error message will appear here"
+        android:textColor="@color/premium_text_primary"
+        android:textSize="16sp"
+        android:layout_marginBottom="12dp"
+        android:minHeight="40dp"
+        android:gravity="center_vertical" />
+
+    <!-- Error Details (Collapsible) -->
+    <LinearLayout
+        android:id="@+id/error_details_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginBottom="16dp">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/premium_divider"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Error Details:"
+            android:textColor="@color/premium_text_secondary"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/error_details_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Detailed error information will appear here"
+            android:textColor="@color/premium_text_secondary"
+            android:textSize="11sp"
+            android:fontFamily="monospace"
+            android:background="@color/premium_background"
+            android:padding="8dp"
+            android:maxLines="4"
+            android:ellipsize="end" />
+
+    </LinearLayout>
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Primary Actions Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <!-- Retry Button -->
+            <Button
+                android:id="@+id/retry_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="🔄 Retry"
+                android:textColor="@color/premium_text_primary"
+                android:background="@drawable/premium_button_primary"
+                android:layout_marginEnd="8dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp" />
+
+            <!-- Fallback Button -->
+            <Button
+                android:id="@+id/fallback_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="🔧 Fallback"
+                android:textColor="@color/premium_text_primary"
+                android:background="@drawable/premium_button_outline"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp" />
+
+        </LinearLayout>
+
+        <!-- Secondary Actions Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <!-- Report Button -->
+            <Button
+                android:id="@+id/report_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="📋 Report"
+                android:textColor="@color/premium_text_secondary"
+                android:background="@android:color/transparent"
+                android:layout_marginEnd="8dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:textSize="14sp" />
+
+            <!-- Dismiss Button -->
+            <Button
+                android:id="@+id/dismiss_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="❌ Dismiss"
+                android:textColor="@color/premium_text_secondary"
+                android:background="@android:color/transparent"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Help Text -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="💡 Tip: Try retry first, use fallback if the issue persists, or report the error for support."
+        android:textColor="@color/premium_text_secondary"
+        android:textSize="12sp"
+        android:layout_marginTop="12dp"
+        android:gravity="center"
+        android:alpha="0.8" />
+
+</LinearLayout>

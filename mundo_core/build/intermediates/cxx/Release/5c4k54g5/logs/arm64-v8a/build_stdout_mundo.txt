@@ -1,0 +1,5 @@
+ninja: Entering directory `D:\injector\bearmod\mundo_core\.cxx\Release\5c4k54g5\arm64-v8a'
+[1/4] Building CXX object CMakeFiles/mundo.dir/jni/mundo_jni_bridge.cpp.o
+[2/4] Building CXX object CMakeFiles/mundo.dir/api/mundo_api.cpp.o
+[3/4] Building CXX object CMakeFiles/mundo.dir/core/mundo_core.cpp.o
+[4/4] Linking CXX shared library D:\injector\bearmod\mundo_core\build\intermediates\cxx\Release\5c4k54g5\obj\arm64-v8a\libmundo.so

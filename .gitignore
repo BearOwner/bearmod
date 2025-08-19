@@ -1,0 +1,66 @@
+# --- Build outputs ---
+*.apk
+*.aar
+*.ap_
+*.aab
+*.dex
+*.class
+/bin/
+/gen/
+/out/
+/build/
+.gradle/
+
+# --- Local config ---
+local.properties
+
+# --- Keystore ---
+signing.properties
+*.jks
+*.keystore
+keys/
+
+# --- IDE files ---
+.idea/
+*.iml
+!.idea/codeStyles/
+
+# --- Logs & reports ---
+*.log
+lint/intermediates/
+lint/generated/
+lint/outputs/
+lint/tmp/
+lint/reports/
+
+# --- Android Studio ---
+.navigation/
+captures/
+.externalNativeBuild
+.cxx/
+obj/
+
+# --- Proguard (Eclipse legacy) ---
+proguard/
+
+# --- Google services ---
+google-services.json
+
+# --- Freeline ---
+freeline.py
+freeline/
+freeline_project_description.json
+
+# --- fastlane ---
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+fastlane/readme.md
+
+# --- VCS meta ---
+vcs.xml
+
+# --- OS junk ---
+.DS_Store
+Thumbs.db

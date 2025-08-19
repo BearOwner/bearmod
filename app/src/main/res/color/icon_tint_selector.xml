@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Selected state - bright accent color -->
+    <item android:state_selected="true" android:color="@color/icon_active" />
+    
+    <!-- Pressed state - slightly dimmed accent -->
+    <item android:state_pressed="true" android:color="@color/icon_active" 
+          android:alpha="0.8" />
+    
+    <!-- Enabled state - normal inactive color -->
+    <item android:state_enabled="true" android:color="@color/icon_inactive" />
+    
+    <!-- Default state - inactive color -->
+    <item android:color="@color/icon_inactive" />
+    
+</selector> 
