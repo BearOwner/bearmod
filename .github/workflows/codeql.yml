@@ -1,0 +1,61 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '36 1 * * 1'
+
+jobs:
+  analyze:
+    name: Analyze (Java/Kotlin + C/C++)
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java, cpp
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK/NDK components
+        run: |
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-34" \
+            "build-tools;34.0.0" \
+            "cmake;3.22.1" \
+            "ndk;27.1.12297006"
+
+      # Attempt CodeQL autobuild first
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      # Fallback: explicit build (doesn't fail workflow if autobuild already worked)
+      - name: Gradle build fallback
+        if: always()
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:assembleDebug --stacktrace --no-daemon || true
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:java-cpp"
