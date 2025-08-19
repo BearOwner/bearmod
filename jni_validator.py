@@ -8,7 +8,7 @@ This script validates JNI implementations and identifies missing or incomplete J
 import os
 import re
 import sys
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Tuple
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -225,8 +225,10 @@ class JNIValidator:
         for java_key, java_method in java_natives.items():
             # Convert Java method to expected JNI function name
             expected_jni_name = self._java_to_jni_function_name(java_key)
-            
-            if expected_jni_name not in cpp_implementations:
+            # Some parsers store keys without the 'Java_' prefix. Support both.
+            expected_no_prefix = expected_jni_name[5:] if expected_jni_name.startswith("Java_") else expected_jni_name
+
+            if (expected_jni_name not in cpp_implementations) and (expected_no_prefix not in cpp_implementations):
                 missing_implementations.append(java_key)
         
         # Check for missing declarations (C++ implementations without Java declarations)
@@ -294,7 +296,11 @@ class JNIValidator:
             report.append("MISSING IMPLEMENTATIONS:")
             report.append("-" * 50)
             for missing in analysis.missing_implementations:
-                report.append(f"  ❌ {missing}")
+                # Use ASCII fallback for environments that can't print Unicode
+                try:
+                    report.append(f"  ❌ {missing}")
+                except Exception:
+                    report.append(f"  [X] {missing}")
                 if missing in analysis.declared_methods:
                     method = analysis.declared_methods[missing]
                     expected_jni = self._java_to_jni_function_name(missing)

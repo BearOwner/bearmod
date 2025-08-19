@@ -13,8 +13,30 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 /**
- * Non-root patch manager using embedded techniques
- * Works without Frida daemon or root access
+ * NonRootPatchManager
+ *
+ * Purpose:
+ * Manages patching and injection without root privileges. Wraps JNI calls that
+ * interact with Frida gadget (if present) or custom patching routines. Provides
+ * safe fallbacks when native features are unavailable.
+ *
+ * Responsibilities:
+ * - Load non-root patching modules and scripts.
+ * - Register and call native methods to perform patches when available.
+ * - Provide safe no-op behavior (Java fallbacks) if JNI functions are stubbed.
+ * - Report progress and results via {@link PatchCallback}.
+ *
+ * Lifecycle:
+ * - Typically initialized when user selects non-root patch mode.
+ * - Runs background operations on a single-thread executor for predictability.
+ *
+ * JNI Bindings:
+ * - native boolean nativeInjectPatchNative(String target, String patchId, String scriptContent)
+ *   Used internally by {@link #tryNativeInjection(String, String, String)}.
+ * - public native boolean injection() — matches registration in JNI_Bridge for validator coverage.
+ *
+ * Notes:
+ * - When adding new JNI hooks, update this Javadoc and ensure the JNI validator and CI cover them.
  */
 public class NonRootPatchManager {
     private static final String TAG = "NonRootPatchManager";

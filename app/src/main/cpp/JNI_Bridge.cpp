@@ -17,6 +17,29 @@ namespace {
     static std::string s_authUser;
 }
 
+int RegisterNativeLibNatives(JNIEnv *env) {
+    JNINativeMethod methods[] = {
+        {"initialize", "(Landroid/content/Context;)V", (void*) Java_com_bearmod_bridge_NativeLib_initialize},
+        {"setAuthToken", "(Ljava/lang/String;)V", (void*) Java_com_bearmod_bridge_NativeLib_setAuthToken},
+        {"setAuth", "(Ljava/lang/String;Ljava/lang/String;)V", (void*) Java_com_bearmod_bridge_NativeLib_setAuth},
+        {"clearAuth", "()V", (void*) Java_com_bearmod_bridge_NativeLib_clearAuth},
+        {"isAuthValid", "()Z", (void*) Java_com_bearmod_bridge_NativeLib_isAuthValid},
+        {"getVersion", "()Ljava/lang/String;", (void*) Java_com_bearmod_bridge_NativeLib_getVersion},
+    };
+
+    jclass clazz = env->FindClass("com/bearmod/bridge/NativeLib");
+    if (!clazz) {
+        __android_log_print(ANDROID_LOG_WARN, "BearMod", "NativeLib class not found, skipping registration");
+        return 0; // Not fatal if class absent in some builds
+    }
+    if (env->RegisterNatives(clazz, methods, sizeof(methods)/sizeof(methods[0])) != 0) {
+        LogJNIError(env, "RegisterNativeLibNatives", "Failed to register NativeLib natives");
+        return -1;
+    }
+    __android_log_print(ANDROID_LOG_INFO, "BearMod", "NativeLib natives registered successfully");
+    return 0;
+}
+
 extern "C" {
 // NativeLib JNI implementations (static methods)
 JNIEXPORT void JNICALL Java_com_bearmod_bridge_NativeLib_initialize(JNIEnv* env, jclass clazz, jobject context) {
@@ -70,29 +93,6 @@ const char* GetJNIString(JNIEnv *env, jstring jstr) {
     if (jstr == nullptr) {
         return nullptr;
     }
-
-int RegisterNativeLibNatives(JNIEnv *env) {
-    JNINativeMethod methods[] = {
-        {"initialize", "(Landroid/content/Context;)V", (void*) Java_com_bearmod_bridge_NativeLib_initialize},
-        {"setAuthToken", "(Ljava/lang/String;)V", (void*) Java_com_bearmod_bridge_NativeLib_setAuthToken},
-        {"setAuth", "(Ljava/lang/String;Ljava/lang/String;)V", (void*) Java_com_bearmod_bridge_NativeLib_setAuth},
-        {"clearAuth", "()V", (void*) Java_com_bearmod_bridge_NativeLib_clearAuth},
-        {"isAuthValid", "()Z", (void*) Java_com_bearmod_bridge_NativeLib_isAuthValid},
-        {"getVersion", "()Ljava/lang/String;", (void*) Java_com_bearmod_bridge_NativeLib_getVersion},
-    };
-
-    jclass clazz = env->FindClass("com/bearmod/bridge/NativeLib");
-    if (!clazz) {
-        __android_log_print(ANDROID_LOG_WARN, "BearMod", "NativeLib class not found, skipping registration");
-        return 0; // Not fatal if class absent in some builds
-    }
-    if (env->RegisterNatives(clazz, methods, sizeof(methods)/sizeof(methods[0])) != 0) {
-        LogJNIError(env, "RegisterNativeLibNatives", "Failed to register NativeLib natives");
-        return -1;
-    }
-    __android_log_print(ANDROID_LOG_INFO, "BearMod", "NativeLib natives registered successfully");
-    return 0;
-}
     return env->GetStringUTFChars(jstr, 0);
 }
 

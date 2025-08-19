@@ -1,0 +1,61 @@
+# Windsurf Development Workflow (playbook)
+# Purpose: Guide day-to-day feature/bugfix iterations with Cascade
+
+name: development
+
+triggers:
+  - start_of_task
+  - new_issue
+  - feature_request
+
+policy:
+  docs_required: true
+  tests_required: true
+  ci_gates:
+    - assemble
+    - lint
+    - unit_tests
+  code_style:
+    - formatting
+
+steps:
+  - id: plan
+    description: Create/refresh the TODO plan and record decisions as memories
+    actions:
+      - cascade.todo.create_or_update
+      - cascade.memory.record(key_decisions)
+
+  - id: scope
+    description: Audit impacted files and define the minimal change set
+    actions:
+      - cascade.read.paths:
+          - app/src/main/java/
+          - app/src/main/cpp/
+          - .github/workflows/
+          - docs/
+
+  - id: implement
+    description: Apply small, incremental diffs; ensure imports are at file top; keep repo runnable
+    rules:
+      - New Activities/Classes must include Javadoc/KDoc headers and docs updates as per CONTRIBUTING.md
+      - Reference symbols/paths explicitly in commit/PR descriptions
+
+  - id: validate
+    description: Build and run unit tests locally; fix failures
+    commands:
+      - ./gradlew assembleDebug
+      - ./gradlew lint
+      - ./gradlew test
+
+  - id: pr
+    description: Open PR using template; ensure CI green
+    checklist:
+      - builds
+      - lint_passes
+      - tests_green
+      - docs_updated
+
+artifacts:
+  - updated_code
+  - docs_changes
+  - test_results

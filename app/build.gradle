@@ -2,6 +2,57 @@ plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
     id 'org.jetbrains.kotlin.kapt'
+    id 'checkstyle'
+}
+
+// Checkstyle configuration (Javadoc enforcement)
+checkstyle {
+    toolVersion = '10.12.4'
+    configFile = file("$projectDir/checkstyle.xml")
+    ignoreFailures = false
+}
+
+tasks.withType(Checkstyle).configureEach { t ->
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+// --- ktlint (warning-only) without Gradle plugin portal ---
+configurations {
+    ktlint
+}
+
+dependencies {
+    ktlint "com.pinterest:ktlint:1.3.1"
+}
+
+tasks.register('ktlintCheck', JavaExec) {
+    group = "verification"
+    description = "Run ktlint on Kotlin sources (warning-only)"
+    classpath = configurations.ktlint
+    mainClass = "com.pinterest.ktlint.Main"
+    // Check Kotlin sources in this module
+    args = [
+            "--reporter=plain",
+            "--relative",
+            "src/**/*.kt"
+    ]
+    // Keep builds green for now; CI step will be continue-on-error too
+    ignoreExitValue = true
+}
+
+tasks.register('ktlintFormat', JavaExec) {
+    group = "formatting"
+    description = "Auto-format Kotlin sources with ktlint"
+    classpath = configurations.ktlint
+    mainClass = "com.pinterest.ktlint.Main"
+    args = [
+            "-F",
+            "--relative",
+            "src/**/*.kt"
+    ]
 }
 
 // Apply local signing config only if present (prevents CI dependency on local files)
@@ -202,6 +253,14 @@ android {
         jvmTarget = '17'
         freeCompilerArgs += ['-opt-in=kotlin.RequiresOptIn']
     }
+
+    testOptions {
+        unitTests {
+            // Allow Android framework calls to return default values in local JVM tests
+            returnDefaultValues = true
+            includeAndroidResources = false
+        }
+    }
 }
 
 // Configuration-cache-safe variant hooks using androidComponents
@@ -288,9 +347,12 @@ dependencies {
        // Enhanced file operations
     implementation 'commons-io:commons-io:2.20.0'
 
-
-
-        // Mundo container integration
+    // Mundo container integration
   //  implementation project(':mundo_core')
 
+    // Instrumentation testing (androidTest)
+    androidTestImplementation 'androidx.test:runner:1.5.2'
+    androidTestImplementation 'androidx.test:rules:1.5.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    androidTestImplementation 'com.squareup.okhttp3:mockwebserver:5.0.0-alpha.14'
 }

@@ -20,6 +20,9 @@ Modern Android app with native (NDK) components and secure CI.
   - `codeql.yml`: CodeQL (Java/Kotlin + C/C++)
 - `docs/`
   - `CI_SETUP.md`: CI/CL overview, secrets, troubleshooting
+  - `TESTING_GUIDE.md`: How to run unit, native, and instrumented tests; rooted Zygisk flow
+  - `snippet/MockWebServerSample.md`: instrumentation networking with MockWebServer
+  - `snippet/ZygiskEncRootModule.md`: minimal Zygisk Enc Root module scaffold
 - `keys/` (ignored)
   - Local keystores for developer machines. Never committed
 - Root build files
@@ -64,6 +67,11 @@ Optional release (locally): either use `signing.properties` + `signing.gradle` (
 - CodeQL
   - Initializes for `java, cpp`
   - Tries autobuild, falls back to Gradle `assembleDebug`
+
+## Testing
+
+- See `docs/TESTING_GUIDE.md` for detailed instructions and troubleshooting.
+- Instrumented tests run on emulator in CI (non-blocking job: Instrumented Tests).
 
 ## Security & secrets
 

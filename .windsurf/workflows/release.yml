@@ -1,0 +1,59 @@
+# Windsurf Release Workflow (playbook)
+# Purpose: Standardize versioning, changelog, tagging, and CI artifacts
+
+name: release
+
+triggers:
+  - release_candidate
+  - release
+
+policy:
+  docs_required: true
+  changelog_required: true
+  tests_required: true
+
+versioning:
+  scheme: semver
+  files:
+    - gradle.properties
+    - app/build.gradle
+
+steps:
+  - id: prep
+    description: Ensure main is green and set release version
+    checklist:
+      - ci_green
+      - decide_version
+    actions:
+      - update_version_files
+
+  - id: changelog
+    description: Generate/update CHANGELOG.md since last tag
+    actions:
+      - cascade.generate_changelog
+    artifacts:
+      - CHANGELOG.md
+
+  - id: validate
+    description: Build and test release artifacts
+    commands:
+      - ./gradlew clean
+      - ./gradlew assembleRelease
+      - ./gradlew test
+
+  - id: tag
+    description: Create and push git tag
+    actions:
+      - git_tag_push
+
+  - id: publish
+    description: Attach artifacts to GitHub Release
+    actions:
+      - create_github_release
+      - upload_artifacts
+
+  - id: post
+    description: Bump to next snapshot and update docs
+    actions:
+      - bump_to_snapshot
+      - update_readme_badges
