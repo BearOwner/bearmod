@@ -10,6 +10,59 @@
 #endif
 
 // ========================================
+// NativeLib Java facade backing storage
+// ========================================
+namespace {
+    static std::string s_authToken;
+    static std::string s_authUser;
+}
+
+extern "C" {
+// NativeLib JNI implementations (static methods)
+JNIEXPORT void JNICALL Java_com_bearmod_bridge_NativeLib_initialize(JNIEnv* env, jclass clazz, jobject context) {
+    (void)env; (void)clazz; (void)context;
+    __android_log_print(ANDROID_LOG_INFO, "BearMod", "NativeLib.initialize called");
+}
+
+JNIEXPORT void JNICALL Java_com_bearmod_bridge_NativeLib_setAuthToken(JNIEnv* env, jclass clazz, jstring token) {
+    (void)clazz;
+    const char* c = token ? env->GetStringUTFChars(token, 0) : nullptr;
+    s_authToken = c ? c : "";
+    if (c) env->ReleaseStringUTFChars(token, c);
+    __android_log_print(ANDROID_LOG_INFO, "BearMod", "NativeLib.setAuthToken called, length=%zu", s_authToken.size());
+}
+
+JNIEXPORT void JNICALL Java_com_bearmod_bridge_NativeLib_setAuth(JNIEnv* env, jclass clazz, jstring user, jstring token) {
+    (void)clazz;
+    const char* cu = user ? env->GetStringUTFChars(user, 0) : nullptr;
+    const char* ct = token ? env->GetStringUTFChars(token, 0) : nullptr;
+    s_authUser  = cu ? cu : "";
+    s_authToken = ct ? ct : s_authToken;
+    if (cu) env->ReleaseStringUTFChars(user, cu);
+    if (ct) env->ReleaseStringUTFChars(token, ct);
+    __android_log_print(ANDROID_LOG_INFO, "BearMod", "NativeLib.setAuth called, user_len=%zu, token_len=%zu", s_authUser.size(), s_authToken.size());
+}
+
+JNIEXPORT void JNICALL Java_com_bearmod_bridge_NativeLib_clearAuth(JNIEnv* env, jclass clazz) {
+    (void)env; (void)clazz;
+    s_authUser.clear();
+    s_authToken.clear();
+    __android_log_print(ANDROID_LOG_INFO, "BearMod", "NativeLib.clearAuth called");
+}
+
+JNIEXPORT jboolean JNICALL Java_com_bearmod_bridge_NativeLib_isAuthValid(JNIEnv* env, jclass clazz) {
+    (void)env; (void)clazz;
+    // Minimal check: token present. Real check remains under Java KeyAuth.
+    return (s_authToken.empty() ? JNI_FALSE : JNI_TRUE);
+}
+
+JNIEXPORT jstring JNICALL Java_com_bearmod_bridge_NativeLib_getVersion(JNIEnv* env, jclass clazz) {
+    (void)clazz;
+    return env->NewStringUTF("1.0");
+}
+}
+
+// ========================================
 // Utility Functions Implementation
 // ========================================
 
@@ -17,6 +70,29 @@ const char* GetJNIString(JNIEnv *env, jstring jstr) {
     if (jstr == nullptr) {
         return nullptr;
     }
+
+int RegisterNativeLibNatives(JNIEnv *env) {
+    JNINativeMethod methods[] = {
+        {"initialize", "(Landroid/content/Context;)V", (void*) Java_com_bearmod_bridge_NativeLib_initialize},
+        {"setAuthToken", "(Ljava/lang/String;)V", (void*) Java_com_bearmod_bridge_NativeLib_setAuthToken},
+        {"setAuth", "(Ljava/lang/String;Ljava/lang/String;)V", (void*) Java_com_bearmod_bridge_NativeLib_setAuth},
+        {"clearAuth", "()V", (void*) Java_com_bearmod_bridge_NativeLib_clearAuth},
+        {"isAuthValid", "()Z", (void*) Java_com_bearmod_bridge_NativeLib_isAuthValid},
+        {"getVersion", "()Ljava/lang/String;", (void*) Java_com_bearmod_bridge_NativeLib_getVersion},
+    };
+
+    jclass clazz = env->FindClass("com/bearmod/bridge/NativeLib");
+    if (!clazz) {
+        __android_log_print(ANDROID_LOG_WARN, "BearMod", "NativeLib class not found, skipping registration");
+        return 0; // Not fatal if class absent in some builds
+    }
+    if (env->RegisterNatives(clazz, methods, sizeof(methods)/sizeof(methods[0])) != 0) {
+        LogJNIError(env, "RegisterNativeLibNatives", "Failed to register NativeLib natives");
+        return -1;
+    }
+    __android_log_print(ANDROID_LOG_INFO, "BearMod", "NativeLib natives registered successfully");
+    return 0;
+}
     return env->GetStringUTFChars(jstr, 0);
 }
 
@@ -395,6 +471,11 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
 
     if (RegisterSecurityManagerNatives(env) != 0) {
         __android_log_print(ANDROID_LOG_ERROR, "BearMod", "Failed to register SecurityManager natives");
+        return -1;
+    }
+
+    if (RegisterNativeLibNatives(env) != 0) {
+        __android_log_print(ANDROID_LOG_ERROR, "BearMod", "Failed to register NativeLib natives");
         return -1;
     }
 
