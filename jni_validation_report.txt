@@ -3,8 +3,8 @@ JNI VALIDATION REPORT FOR BEARMOD PROJECT
 ================================================================================
 
 SUMMARY:
-  Java native method declarations: 16
-  C++ JNI implementations: 53
+  Java native method declarations: 17
+  C++ JNI implementations: 52
   Missing implementations: 0
   Missing declarations: 0
   Signature mismatches: 0
@@ -71,71 +71,76 @@ JAVA NATIVE METHOD DECLARATIONS:
     Parameters: String s, String v
     File: D:\injector\bearmod\app\src\main\java\com\bearmod\Floating.java:209
 
-  com.bearmod.activity.LoginActivity.Init
-    Return: void
-    Parameters: Context mContext
-    File: D:\injector\bearmod\app\src\main\java\com\bearmod\activity\LoginActivity.java:324
-
   com.bearmod.activity.LoginActivity.updateAuthenticationState
     Return: void
     Parameters: String sessionId, String token, String hwid, boolean isValid
-    File: D:\injector\bearmod\app\src\main\java\com\bearmod\activity\LoginActivity.java:325
+    File: D:\injector\bearmod\app\src\main\java\com\bearmod\activity\LoginActivity.java:324
 
   com.bearmod.auth.SimpleLicenseVerifier.ID
     Return: session
     Parameters: alphanumeric
-    File: D:\injector\bearmod\app\src\main\java\com\bearmod\auth\SimpleLicenseVerifier.java:1550
+    File: D:\injector\bearmod\app\src\main\java\com\bearmod\auth\SimpleLicenseVerifier.java:1574
+
+  com.bearmod.bridge.NativeLib.initialize
+    Return: void
+    Parameters: Context context
+    File: D:\injector\bearmod\app\src\main\java\com\bearmod\bridge\NativeLib.java:20
 
   com.bearmod.patch.NonRootPatchManager.nativeInjectPatchNative
     Return: boolean
     Parameters: String targetPackage, String patchId, String scriptContent
-    File: D:\injector\bearmod\app\src\main\java\com\bearmod\patch\NonRootPatchManager.java:227
+    File: D:\injector\bearmod\app\src\main\java\com\bearmod\patch\NonRootPatchManager.java:249
+
+  com.bearmod.patch.NonRootPatchManager.injection
+    Return: boolean
+    Parameters: none
+    File: D:\injector\bearmod\app\src\main\java\com\bearmod\patch\NonRootPatchManager.java:253
 
 C++ JNI IMPLEMENTATIONS:
 --------------------------------------------------
-  com_bearmod_Floating_iconenc
-    Return: jstring
-    File: D:\injector\bearmod\app\src\main\cpp\MOD\LOGO.h:2
+  com_bearmod_bridge_NativeLib_initialize
+    Return: void
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.cpp:48
 
   com_bearmod_plugin_NonRootManager_initializeGadgetManager
     Return: jboolean
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:87
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:84
 
   com_bearmod_plugin_NonRootManager_injectToPackage
     Return: jboolean
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:91
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:88
 
   com_bearmod_plugin_NonRootManager_getInjectionStatusNative
     Return: jint
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:95
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:92
 
   com_bearmod_plugin_NonRootManager_getLastErrorNative
     Return: jstring
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:98
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:95
 
   com_bearmod_plugin_NonRootManager_shutdownGadgetManager
     Return: void
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:101
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:98
 
   com_bearmod_plugin_NonRootManager_isNonRootSupportedNative
     Return: jboolean
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:104
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:101
 
   com_bearmod_plugin_NonRootManager_validateSystemRequirementsNative
     Return: jboolean
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:107
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:104
 
   com_bearmod_loader_security_NativeSecurityManager_nativeDetectFrida
     Return: jboolean
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:114
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:111
 
   com_bearmod_loader_security_NativeSecurityManager_nativeStartAntiHookMonitoring
     Return: void
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:117
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:114
 
   com_bearmod_loader_security_NativeSecurityManager_nativeVerifyIntegrity
     Return: jboolean
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:120
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:117
 
   com_bearmod_Floating_onlinename
     Return: jstring
@@ -171,23 +176,27 @@ C++ JNI IMPLEMENTATIONS:
 
   com_bearmod_activity_LoginActivity_updateAuthenticationState
     Return: void
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:64
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:61
 
   com_bearmod_auth_SimpleLicenseVerifier_ID
     Return: jstring
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:72
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:69
 
   com_bearmod_patch_NonRootPatchManager_nativeInjectPatchNative
     Return: jboolean
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:79
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:76
 
   com_bearmod_patch_NonRootPatchManager_injection
     Return: jboolean
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.cpp:193
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.cpp:270
+
+  com_bearmod_Floating_iconenc
+    Return: jstring
+    File: D:\injector\bearmod\app\src\main\cpp\MOD\LOGO.h:2
 
   com_bearmod_Floating_Switch
     Return: void
-    File: D:\injector\bearmod\app\src\main\cpp\NRG.h:5296
+    File: D:\injector\bearmod\app\src\main\cpp\NRG.h:5252
 
   com_bearmod_Floating_IsESPActive
     Return: jboolean
@@ -196,10 +205,6 @@ C++ JNI IMPLEMENTATIONS:
   com_bearmod_Floating_DrawOn
     Return: void
     File: D:\injector\bearmod\app\src\main\cpp\NRG.h:4743
-
-  com_bearmod_activity_LoginActivity_Init
-    Return: void
-    File: D:\injector\bearmod\app\src\main\cpp\NRG.h:5241
 
   Java_com_bearmod_Floating_onlinename
     Return: unknown
@@ -249,61 +254,57 @@ C++ JNI IMPLEMENTATIONS:
     Return: unknown
     File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:55
 
-  Java_com_bearmod_activity_LoginActivity_Init
+  Java_com_bearmod_activity_LoginActivity_updateAuthenticationState
     Return: unknown
     File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:62
 
-  Java_com_bearmod_activity_LoginActivity_updateAuthenticationState
-    Return: unknown
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:65
-
   Java_com_bearmod_auth_SimpleLicenseVerifier_ID
     Return: unknown
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:73
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:70
 
   Java_com_bearmod_patch_NonRootPatchManager_nativeInjectPatchNative
     Return: unknown
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:80
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:77
 
   Java_com_bearmod_plugin_NonRootManager_initializeGadgetManager
     Return: unknown
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:88
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:85
 
   Java_com_bearmod_plugin_NonRootManager_injectToPackage
     Return: unknown
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:92
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:89
 
   Java_com_bearmod_plugin_NonRootManager_getInjectionStatusNative
     Return: unknown
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:96
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:93
 
   Java_com_bearmod_plugin_NonRootManager_getLastErrorNative
     Return: unknown
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:99
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:96
 
   Java_com_bearmod_plugin_NonRootManager_shutdownGadgetManager
     Return: unknown
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:102
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:99
 
   Java_com_bearmod_plugin_NonRootManager_isNonRootSupportedNative
     Return: unknown
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:105
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:102
 
   Java_com_bearmod_plugin_NonRootManager_validateSystemRequirementsNative
     Return: unknown
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:108
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:105
 
   Java_com_bearmod_loader_security_NativeSecurityManager_nativeDetectFrida
     Return: unknown
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:115
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:112
 
   Java_com_bearmod_loader_security_NativeSecurityManager_nativeStartAntiHookMonitoring
     Return: unknown
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:118
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:115
 
   Java_com_bearmod_loader_security_NativeSecurityManager_nativeVerifyIntegrity
     Return: unknown
-    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:121
+    File: D:\injector\bearmod\app\src\main\cpp\JNI_Bridge.h:118
 
 RECOMMENDATIONS:
 --------------------------------------------------

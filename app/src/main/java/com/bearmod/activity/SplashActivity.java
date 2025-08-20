@@ -30,6 +30,7 @@ import com.bearmod.R;
 import com.bearmod.AntiDetectionManager;
 import com.bearmod.BuildConfig;
 import com.bearmod.util.NativeUtils;
+import com.bearmod.bridge.NativeLib;
 
 /**
  * SplashActivity - Initial app launch and loading screen
@@ -222,6 +223,14 @@ public class SplashActivity extends AppCompatActivity {
             System.loadLibrary("bearmod");
             Log.d(TAG, "Native library loaded successfully");
             NativeUtils.setNativeLoaded(true);
+
+            // Perform native registrations in the correct App ClassLoader context
+            try {
+                NativeLib.initialize(getApplicationContext());
+                Log.d(TAG, "NativeLib.initialize executed successfully");
+            } catch (Throwable initErr) {
+                Log.w(TAG, "Native init failed (continuing in limited mode): " + initErr.getMessage());
+            }
         } catch (UnsatisfiedLinkError e) {
             Log.w(TAG, "Failed to load native library: " + e.getMessage());
             // Continue anyway - app can work in demo mode

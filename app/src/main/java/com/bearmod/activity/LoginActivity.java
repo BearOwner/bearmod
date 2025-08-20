@@ -321,6 +321,5 @@ public class LoginActivity extends AppCompatActivity {
         Log.d(TAG, "LoginActivity destroyed");
     }
 
-    private static native void Init(Context mContext);
     public static native void updateAuthenticationState(String sessionId, String token, String hwid, boolean isValid);
 }
