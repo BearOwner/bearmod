@@ -5,23 +5,9 @@
 #include "JNI_Bridge.h"
 
 
-bool TestGGG = false;
-bool IsHideEsp(JNIEnv * env, jclass clazz)
-{
-    if (TestGGG == true){
-        return true;
-    }
-    return false;
-}
+// Legacy JNI functions removed. JNI entrypoints are centralized in JNI_Bridge.cpp.
 
-void native_onSendConfig(JNIEnv *env, jobject thiz, jstring s, jstring v) {
-    const char *config = env->GetStringUTFChars(s, 0);
-    const char *value = env->GetStringUTFChars(v, 0);
-    HandleOnSendConfig(config, value);
-    env->ReleaseStringUTFChars(s, config);
-    env->ReleaseStringUTFChars(v, value);
-}
-
+#include "MOD/LOGO.h"
 // Note: JNI implementations are now centralized in JNI_Bridge.cpp
 // This file only contains the registration logic and legacy functions
 
@@ -36,21 +22,13 @@ void native_onSendConfig(JNIEnv *env, jobject thiz, jstring s, jstring v) {
 // C++ global variables (bValid, g_Token, g_Auth) are updated via existing JNI bridge
 // ========================================
 
-jclass (*orig_FindClass)(JNIEnv *env, const char *name);
-// Legacy registration functions - now handled by JNI_Bridge.cpp
-int Register1(JNIEnv *env) {
-    // Legacy registration - now handled by JNI_Bridge.cpp
-    return 0;
-}
+// All legacy registration stubs removed. Keep this file free of JNI bindings.
 
-int Register2(JNIEnv *env) {
-    // Legacy registration - now handled by JNI_Bridge.cpp
-    return 0;
-}
 
-int Register3(JNIEnv *env) {
-    // Legacy registration - now handled by JNI_Bridge.cpp
-    return 0;
+// Bridge function to dispatch configuration updates without including NRG.h elsewhere
+extern "C" void HandleOnSendConfig_Bridge(const char* config, const char* value) {
+    // Inline business logic is defined in NRG.h and visible here
+    HandleOnSendConfig(config, value);
 }
 
 

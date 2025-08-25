@@ -13,15 +13,9 @@ public final class NativeLib {
 
     private NativeLib() {}
 
-    // Bootstrap init from SplashActivity
+    /**
+     * Initialize native components (registration, safe setup).
+     * Call early (e.g., from SplashActivity) after System.loadLibrary.
+     */
     public static native void initialize(Context context);
-
-    // Auth flows (fed by existing KeyAuth Java layer)
-    public static native void setAuthToken(String token);
-    public static native void setAuth(String user, String token);
-    public static native void clearAuth();
-    public static native boolean isAuthValid();
-
-    // Diagnostics
-    public static native String getVersion();
 }

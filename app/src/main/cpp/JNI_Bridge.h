@@ -59,9 +59,6 @@ Java_com_bearmod_Floating_onSendConfig(JNIEnv *env, jobject thiz, jstring s, jst
 // ========================================
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_bearmod_activity_LoginActivity_Init(JNIEnv *env, jclass clazz, jobject m_context);
-
-extern "C" JNIEXPORT void JNICALL
 Java_com_bearmod_activity_LoginActivity_updateAuthenticationState(JNIEnv *env, jclass clazz, 
     jstring sessionId, jstring token, jstring hwid, jboolean isValid);
 

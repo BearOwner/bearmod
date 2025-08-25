@@ -4,6 +4,9 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Etc/UTC"
     open-pull-requests-limit: 5
     groups:
       androidx:
@@ -15,8 +18,26 @@ updates:
       retrofit:
         patterns:
           - "com.squareup.retrofit2*"
+      netty:
+        patterns:
+          - "io.netty:*"
+      protobuf:
+        patterns:
+          - "com.google.protobuf:*"
+      gson:
+        patterns:
+          - "com.google.code.gson:*"
+      commons-io:
+        patterns:
+          - "commons-io:*"
+    ignore:
+      - dependency-name: "junit*"
+        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
     open-pull-requests-limit: 5

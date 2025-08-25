@@ -5237,15 +5237,7 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
 
 
 
-extern "C"
-JNIEXPORT void JNICALL
-Java_com_bearmod_activity_LoginActivity_Init(JNIEnv *env, jclass clazz, jobject m_context) {
-  // Initialize any necessary C++ globals or perform other setup tasks here.
-  auto pkgName = GetPackageName(env, m_context);
-  // StartRuntimeHook(pkgName);
-  //    pthread_t t;
-  //pthread_create(&t, 0, Init_Thread, 0);
-}
+// Obsolete: LoginActivity.Init JNI removed. Initialization happens via NativeLib.initialize(Context).
 
 // ========================================
 // OBSOLETE NATIVE_CHECK METHOD REMOVED
@@ -5253,44 +5245,8 @@ Java_com_bearmod_activity_LoginActivity_Init(JNIEnv *env, jclass clazz, jobject 
 // C++ authentication state updated via updateAuthenticationState() JNI bridge
 // ========================================
 
-// ========================================
-// KEYAUTH AUTHENTICATION BRIDGE
-// Called from Java when KeyAuth verification succeeds/fails
-// ========================================
-void updateAuthenticationState(JNIEnv *env, jclass clazz, jstring jSessionId, jstring jToken, jstring jHwid, jboolean jIsValid) {
-  const bool isValid = (jIsValid == JNI_TRUE);
-  if (isValid) {
-    // Extract values from Java
-    const char* sessionStr = env->GetStringUTFChars(jSessionId, 0);
-    const char* tokenStr   = env->GetStringUTFChars(jToken, 0);
-    const char* hwidStr    = env->GetStringUTFChars(jHwid, 0);
-
-    // Update C++ global authentication variables
-    g_Auth  = sessionStr ? sessionStr : "";
-    g_Token = tokenStr   ? tokenStr   : "";
-    bValid  = true;
-
-    // Optionally store HWID locally if needed later
-    // (Add a global g_Hwid if you need it.)
-
-    // Release JNI strings
-    if (sessionStr) env->ReleaseStringUTFChars(jSessionId, sessionStr);
-    if (tokenStr)   env->ReleaseStringUTFChars(jToken, tokenStr);
-    if (hwidStr)    env->ReleaseStringUTFChars(jHwid, hwidStr);
-
-    // Log successful authentication
-    __android_log_print(ANDROID_LOG_INFO, "BearMod", "C++ authentication state updated - KeyAuth verification successful");
-    __android_log_print(ANDROID_LOG_DEBUG, "BearMod", "Session: %s, Valid: %s",
-                       g_Auth.c_str(), bValid ? "true" : "false");
-  } else {
-    // Clear authentication state
-    g_Token.clear();
-    g_Auth.clear();
-    bValid = false;
-
-    __android_log_print(ANDROID_LOG_INFO, "BearMod", "C++ authentication state cleared - KeyAuth verification failed");
-  }
-}
+// Authentication bridge is implemented in JNI_Bridge.cpp via
+// Java_com_bearmod_activity_LoginActivity_updateAuthenticationState.
 
 extern "C"
 JNIEXPORT void JNICALL

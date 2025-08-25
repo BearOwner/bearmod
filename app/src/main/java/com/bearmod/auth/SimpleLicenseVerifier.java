@@ -20,9 +20,31 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 /**
- * Simple License Verifier for BearMod
- * Lightweight Java-only implementation without complex APIs or webhooks
- * Focuses on core license verification without interfering with target apps
+ * SimpleLicenseVerifier
+ *
+ * Purpose:
+ * Provides client-side license verification using KeyAuth (v1.3) with a simplified flow.
+ * Acts as a bridge between Java UI (e.g., {@link com.bearmod.activity.LoginActivity}) and
+ * native BearMod authentication state (updated via the JNI bridge).
+ *
+ * Responsibilities:
+ * - Stores and validates session and license tokens with resilience across reinstalls.
+ * - Interacts with KeyAuth using OkHttp, handling init, session check, and license verify.
+ * - Updates native authentication state via JNI bridge utilities after successful auth.
+ * - Exposes results to Java UI and other components.
+ *
+ * Lifecycle:
+ * - Invoked during user login for license verification.
+ * - Can be re-validated on app resume to ensure session integrity.
+ * - Clears state on logout and propagates changes to native layer.
+ *
+ * JNI Bindings:
+ * - native String {@link #ID()} — instance method registered in JNI (see JNI_Bridge.h/cpp).
+ *   Used by native code to fetch an identifier string when needed.
+ *
+ * Notes:
+ * - Keep network and persistence logic here; keep JNI implementations minimal and stable.
+ * - When adding new JNI hooks, update Javadoc and ensure validator coverage in CI.
  */
 public class SimpleLicenseVerifier {
     private static final String TAG = "SimpleLicenseVerifier";
@@ -37,6 +59,22 @@ public class SimpleLicenseVerifier {
     private static final String APP_NAME = "com.bearmod";
     private static final String VERSION = "1.3"; // Application version
     private static final String API_URL = "https://keyauth.win/api/1.3/";
+    // Test-only override for API base URL (not persisted). Visible to androidTest in same package.
+    static volatile String apiBaseOverride = null; // null => use production API_URL
+
+    private static String getApiUrl() {
+        return (apiBaseOverride != null && !apiBaseOverride.isEmpty()) ? apiBaseOverride : API_URL;
+    }
+
+    /**
+     * Set a temporary API base URL for testing (androidTest). Do not use in production code.
+     * Passing null or empty will clear the override.
+     */
+    static void setApiBaseForTesting(String base) {
+        apiBaseOverride = (base != null && !base.isEmpty()) ? base : null;
+    }
+    /** Clear the temporary API base URL override (testing only). */
+    static void clearApiBaseForTesting() { apiBaseOverride = null; }
 
     // Alternative API URLs for testing
     private static final String[] ALTERNATIVE_API_URLS = {
@@ -133,21 +171,6 @@ public class SimpleLicenseVerifier {
             return null;
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     // Removed server token storage methods since server token validation is disabled
     // All server-token related helpers and persistence have been deleted.
@@ -359,7 +382,8 @@ public class SimpleLicenseVerifier {
             // Validate configuration first
             validateApiConfiguration();
 
-            Log.d(TAG, "API_URL: " + API_URL);
+            Log.d(TAG, "API_URL: " + getApiUrl());
+
             Log.d(TAG, "APP_NAME: " + APP_NAME);
             Log.d(TAG, "OWNER_ID: " + OWNER_ID);
             Log.d(TAG, "VERSION: " + VERSION);
@@ -376,13 +400,13 @@ public class SimpleLicenseVerifier {
             Log.d(TAG, "Request parameters built successfully");
 
             Request request = new Request.Builder()
-                    .url(API_URL)
+                    .url(getApiUrl())
                     .post(formBody)
                     .addHeader("User-Agent", "BearMod/1.0")
                     .addHeader("Content-Type", "application/x-www-form-urlencoded")
                     .build();
 
-            Log.d(TAG, "Sending KeyAuth init request to: " + API_URL);
+            Log.d(TAG, "Sending KeyAuth init request to: " + getApiUrl());
 
             try (Response response = client.newCall(request).execute()) {
                 Log.d(TAG, "Response received - HTTP " + response.code());
@@ -463,7 +487,7 @@ public class SimpleLicenseVerifier {
                     .build();
 
             Request request = new Request.Builder()
-                    .url(API_URL)
+                    .url(getApiUrl())
                     .post(formBody)
                     .addHeader("User-Agent", "BearMod/1.0")
                     .build();
@@ -585,7 +609,7 @@ public class SimpleLicenseVerifier {
                     .build();
 
             Request request = new Request.Builder()
-                    .url(API_URL)
+                    .url(getApiUrl())
                     .post(formBody)
                     .addHeader("User-Agent", "BearMod/1.0")
                     .build();

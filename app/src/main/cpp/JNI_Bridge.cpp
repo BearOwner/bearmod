@@ -1,7 +1,7 @@
 #include "JNI_Bridge.h"
 #include "Helper/Includes.h"
-// #include "NRG.h"  // Commented out to avoid duplicate symbols
-// #include "MOD/LOGO.h"  // Commented out to avoid duplicate symbols
+#include <string>
+
 // #include "nonroot/frida_gadget_manager.h"  // Commented out due to missing dependencies
 
 // Provide a safe fallback for OBFUSCATE macro if not defined by other headers
@@ -9,76 +9,25 @@
 #define OBFUSCATE(x) x
 #endif
 
-// ========================================
-// NativeLib Java facade backing storage
-// ========================================
-namespace {
-    static std::string s_authToken;
-    static std::string s_authUser;
-}
+// No NativeLib auth backing storage; KeyAuth state is bridged via LoginActivity.updateAuthenticationState
 
+// Forward declarations to avoid including heavy NRG.h (which defines globals)
+extern "C" void HandleOnSendConfig_Bridge(const char* key, const char* value);
+extern std::string g_Auth;
+extern std::string g_Token;
+extern bool bValid;
+
+// --------------------------------------------------------
+// Forward declarations for NativeLib JNI functions (static)
+// Needed because we take their addresses in RegisterNativeLibNatives
+// --------------------------------------------------------
 extern "C" {
-// NativeLib JNI implementations (static methods)
-JNIEXPORT void JNICALL Java_com_bearmod_bridge_NativeLib_initialize(JNIEnv* env, jclass clazz, jobject context) {
-    (void)env; (void)clazz; (void)context;
-    __android_log_print(ANDROID_LOG_INFO, "BearMod", "NativeLib.initialize called");
+JNIEXPORT void JNICALL Java_com_bearmod_bridge_NativeLib_initialize(JNIEnv* env, jclass clazz, jobject context);
 }
-
-JNIEXPORT void JNICALL Java_com_bearmod_bridge_NativeLib_setAuthToken(JNIEnv* env, jclass clazz, jstring token) {
-    (void)clazz;
-    const char* c = token ? env->GetStringUTFChars(token, 0) : nullptr;
-    s_authToken = c ? c : "";
-    if (c) env->ReleaseStringUTFChars(token, c);
-    __android_log_print(ANDROID_LOG_INFO, "BearMod", "NativeLib.setAuthToken called, length=%zu", s_authToken.size());
-}
-
-JNIEXPORT void JNICALL Java_com_bearmod_bridge_NativeLib_setAuth(JNIEnv* env, jclass clazz, jstring user, jstring token) {
-    (void)clazz;
-    const char* cu = user ? env->GetStringUTFChars(user, 0) : nullptr;
-    const char* ct = token ? env->GetStringUTFChars(token, 0) : nullptr;
-    s_authUser  = cu ? cu : "";
-    s_authToken = ct ? ct : s_authToken;
-    if (cu) env->ReleaseStringUTFChars(user, cu);
-    if (ct) env->ReleaseStringUTFChars(token, ct);
-    __android_log_print(ANDROID_LOG_INFO, "BearMod", "NativeLib.setAuth called, user_len=%zu, token_len=%zu", s_authUser.size(), s_authToken.size());
-}
-
-JNIEXPORT void JNICALL Java_com_bearmod_bridge_NativeLib_clearAuth(JNIEnv* env, jclass clazz) {
-    (void)env; (void)clazz;
-    s_authUser.clear();
-    s_authToken.clear();
-    __android_log_print(ANDROID_LOG_INFO, "BearMod", "NativeLib.clearAuth called");
-}
-
-JNIEXPORT jboolean JNICALL Java_com_bearmod_bridge_NativeLib_isAuthValid(JNIEnv* env, jclass clazz) {
-    (void)env; (void)clazz;
-    // Minimal check: token present. Real check remains under Java KeyAuth.
-    return (s_authToken.empty() ? JNI_FALSE : JNI_TRUE);
-}
-
-JNIEXPORT jstring JNICALL Java_com_bearmod_bridge_NativeLib_getVersion(JNIEnv* env, jclass clazz) {
-    (void)clazz;
-    return env->NewStringUTF("1.0");
-}
-}
-
-// ========================================
-// Utility Functions Implementation
-// ========================================
-
-const char* GetJNIString(JNIEnv *env, jstring jstr) {
-    if (jstr == nullptr) {
-        return nullptr;
-    }
 
 int RegisterNativeLibNatives(JNIEnv *env) {
     JNINativeMethod methods[] = {
         {"initialize", "(Landroid/content/Context;)V", (void*) Java_com_bearmod_bridge_NativeLib_initialize},
-        {"setAuthToken", "(Ljava/lang/String;)V", (void*) Java_com_bearmod_bridge_NativeLib_setAuthToken},
-        {"setAuth", "(Ljava/lang/String;Ljava/lang/String;)V", (void*) Java_com_bearmod_bridge_NativeLib_setAuth},
-        {"clearAuth", "()V", (void*) Java_com_bearmod_bridge_NativeLib_clearAuth},
-        {"isAuthValid", "()Z", (void*) Java_com_bearmod_bridge_NativeLib_isAuthValid},
-        {"getVersion", "()Ljava/lang/String;", (void*) Java_com_bearmod_bridge_NativeLib_getVersion},
     };
 
     jclass clazz = env->FindClass("com/bearmod/bridge/NativeLib");
@@ -93,6 +42,53 @@ int RegisterNativeLibNatives(JNIEnv *env) {
     __android_log_print(ANDROID_LOG_INFO, "BearMod", "NativeLib natives registered successfully");
     return 0;
 }
+
+extern "C" {
+// NativeLib JNI implementations (static methods)
+JNIEXPORT void JNICALL Java_com_bearmod_bridge_NativeLib_initialize(JNIEnv* env, jclass clazz, jobject context) {
+    (void)clazz; (void)context;
+    __android_log_print(ANDROID_LOG_INFO, "BearMod", "NativeLib.initialize called - registering natives in Java context");
+
+    int failures = 0;
+
+    if (RegisterFloatingNatives(env) != 0) {
+        __android_log_print(ANDROID_LOG_ERROR, "BearMod", "initialize: Failed to register Floating natives (will continue)");
+        if (env->ExceptionCheck()) env->ExceptionClear();
+        failures++;
+    }
+    if (RegisterLoginActivityNatives(env) != 0) {
+        __android_log_print(ANDROID_LOG_ERROR, "BearMod", "initialize: Failed to register LoginActivity natives (will continue)");
+        if (env->ExceptionCheck()) env->ExceptionClear();
+        failures++;
+    }
+    if (RegisterSimpleLicenseVerifierNatives(env) != 0) {
+        __android_log_print(ANDROID_LOG_WARN, "BearMod", "initialize: SimpleLicenseVerifier natives not registered (optional)");
+        if (env->ExceptionCheck()) env->ExceptionClear();
+    }
+    if (RegisterNonRootPatchManagerNatives(env) != 0) {
+        __android_log_print(ANDROID_LOG_WARN, "BearMod", "initialize: NonRootPatchManager natives not registered (optional)");
+        if (env->ExceptionCheck()) env->ExceptionClear();
+    }
+    if (RegisterNativeLibNatives(env) != 0) {
+        __android_log_print(ANDROID_LOG_ERROR, "BearMod", "initialize: Failed to register NativeLib natives (will continue)");
+        if (env->ExceptionCheck()) env->ExceptionClear();
+        failures++;
+    }
+
+    __android_log_print(ANDROID_LOG_INFO, "BearMod", "NativeLib.initialize completed with %d failure(s)", failures);
+}
+
+// Removed all NativeLib auth-related JNI implementations to avoid duplication with SimpleLicenseVerifier path
+}
+
+// ========================================
+// Utility Functions Implementation
+// ========================================
+
+const char* GetJNIString(JNIEnv *env, jstring jstr) {
+    if (jstr == nullptr) {
+        return nullptr;
+    }
     return env->GetStringUTFChars(jstr, 0);
 }
 
@@ -113,11 +109,6 @@ void LogJNIError(JNIEnv *env, const char* function, const char* error) {
 // Stubs for undefined JNI symbols referenced in registration arrays
 // This ensures linking succeeds even if real implementations are not yet provided.
 extern "C" {
-JNIEXPORT jstring JNICALL Java_com_bearmod_Floating_iconenc(JNIEnv* env, jobject thiz) {
-    __android_log_print(ANDROID_LOG_WARN, "BearMod", "Stub: Floating.iconenc()");
-    return env->NewStringUTF("");
-}
-
 // NonRootManager stubs
 JNIEXPORT jboolean JNICALL Java_com_bearmod_plugin_NonRootManager_initializeGadgetManager(JNIEnv* env, jobject thiz, jobject context, jstring configJson) {
     __android_log_print(ANDROID_LOG_WARN, "BearMod", "Stub: NonRootManager.initializeGadgetManager()");
@@ -212,7 +203,8 @@ Java_com_bearmod_Floating_onSendConfig(JNIEnv *env, jobject thiz, jstring s, jst
     __android_log_print(ANDROID_LOG_INFO, "BearMod", "onSendConfig called: %s = %s", 
                        config ? config : "null", value ? value : "null");
     
-    // Actual implementation would go here
+    // Forward to business logic handler via bridge implemented in bearmod.cpp
+    HandleOnSendConfig_Bridge(config, value);
     
     ReleaseJNIString(env, s, config);
     ReleaseJNIString(env, v, value);
@@ -230,7 +222,16 @@ Java_com_bearmod_activity_LoginActivity_updateAuthenticationState(JNIEnv *env, j
     __android_log_print(ANDROID_LOG_INFO, "BearMod", "updateAuthenticationState called - Valid: %s", 
                        isValid ? "true" : "false");
     
-    // Actual implementation would go here
+    // Update C++ global authentication variables
+    if (isValid == JNI_TRUE) {
+        g_Auth  = sessionStr ? sessionStr : "";
+        g_Token = tokenStr   ? tokenStr   : "";
+        bValid  = true;
+    } else {
+        g_Token.clear();
+        g_Auth.clear();
+        bValid = false;
+    }
     
     ReleaseJNIString(env, sessionId, sessionStr);
     ReleaseJNIString(env, token, tokenStr);
@@ -309,7 +310,6 @@ int RegisterFloatingNatives(JNIEnv *env) {
 
 int RegisterLoginActivityNatives(JNIEnv *env) {
     JNINativeMethod methods[] = {
-        {"Init", "(Landroid/content/Context;)V", (void *) Java_com_bearmod_activity_LoginActivity_Init},
         {"updateAuthenticationState", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)V", 
          (void *) Java_com_bearmod_activity_LoginActivity_updateAuthenticationState}
     };
@@ -372,64 +372,6 @@ int RegisterNonRootPatchManagerNatives(JNIEnv *env) {
     return 0;
 }
 
-int RegisterNonRootManagerNatives(JNIEnv *env) {
-    JNINativeMethod methods[] = {
-        {"initializeGadgetManager", "(Landroid/content/Context;Ljava/lang/String;)Z", 
-         (void *) Java_com_bearmod_plugin_NonRootManager_initializeGadgetManager},
-        {"injectToPackage", "(Ljava/lang/String;Ljava/lang/String;)Z", 
-         (void *) Java_com_bearmod_plugin_NonRootManager_injectToPackage},
-        {"getInjectionStatusNative", "()I", 
-         (void *) Java_com_bearmod_plugin_NonRootManager_getInjectionStatusNative},
-        {"getLastErrorNative", "()Ljava/lang/String;", 
-         (void *) Java_com_bearmod_plugin_NonRootManager_getLastErrorNative},
-        {"shutdownGadgetManager", "()V", 
-         (void *) Java_com_bearmod_plugin_NonRootManager_shutdownGadgetManager},
-        {"isNonRootSupportedNative", "()Z", 
-         (void *) Java_com_bearmod_plugin_NonRootManager_isNonRootSupportedNative},
-        {"validateSystemRequirementsNative", "()Z", 
-         (void *) Java_com_bearmod_plugin_NonRootManager_validateSystemRequirementsNative}
-    };
-    
-    jclass clazz = env->FindClass("com/bearmod/plugin/NonRootManager");
-    if (!clazz) {
-        __android_log_print(ANDROID_LOG_WARN, "BearMod", "NonRootManager class not found, skipping registration");
-        return 0; // Not an error, class might not exist
-    }
-
-    if (env->RegisterNatives(clazz, methods, sizeof(methods) / sizeof(methods[0])) != 0) {
-        LogJNIError(env, "RegisterNonRootManagerNatives", "Failed to register NonRootManager natives");
-        return -1;
-    }
-
-    __android_log_print(ANDROID_LOG_INFO, "BearMod", "NonRootManager natives registered successfully");
-    return 0;
-}
-
-int RegisterSecurityManagerNatives(JNIEnv *env) {
-    JNINativeMethod methods[] = {
-        {"nativeDetectFrida", "()Z", 
-         (void *) Java_com_bearmod_loader_security_NativeSecurityManager_nativeDetectFrida},
-        {"nativeStartAntiHookMonitoring", "()V", 
-         (void *) Java_com_bearmod_loader_security_NativeSecurityManager_nativeStartAntiHookMonitoring},
-        {"nativeVerifyIntegrity", "()Z", 
-         (void *) Java_com_bearmod_loader_security_NativeSecurityManager_nativeVerifyIntegrity}
-    };
-    
-    jclass clazz = env->FindClass("com/bearmod/loader/security/NativeSecurityManager");
-    if (!clazz) {
-        __android_log_print(ANDROID_LOG_WARN, "BearMod", "NativeSecurityManager class not found, skipping registration");
-        return 0; // Not an error, class might not exist
-    }
-
-    if (env->RegisterNatives(clazz, methods, sizeof(methods) / sizeof(methods[0])) != 0) {
-        LogJNIError(env, "RegisterSecurityManagerNatives", "Failed to register NativeSecurityManager natives");
-        return -1;
-    }
-
-    __android_log_print(ANDROID_LOG_INFO, "BearMod", "NativeSecurityManager natives registered successfully");
-    return 0;
-}
-
 // ========================================
 // JNI OnLoad/OnUnload Implementation
 // ========================================
@@ -443,40 +385,35 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
 
     __android_log_print(ANDROID_LOG_INFO, "BearMod", "JNI_OnLoad called - registering native methods");
 
-    // Register all native methods
+    // Attempt to register all native methods, but do not abort load on failure.
+    // Some classes may not be visible via FindClass during JNI_OnLoad (class loader issue).
+    int failures = 0;
     if (RegisterFloatingNatives(env) != 0) {
-        __android_log_print(ANDROID_LOG_ERROR, "BearMod", "Failed to register Floating natives");
-        return -1;
+        __android_log_print(ANDROID_LOG_ERROR, "BearMod", "OnLoad: Failed to register Floating natives (will continue)");
+        if (env->ExceptionCheck()) env->ExceptionClear();
+        failures++;
     }
 
     if (RegisterLoginActivityNatives(env) != 0) {
-        __android_log_print(ANDROID_LOG_ERROR, "BearMod", "Failed to register LoginActivity natives");
-        return -1;
+        __android_log_print(ANDROID_LOG_ERROR, "BearMod", "OnLoad: Failed to register LoginActivity natives (will continue)");
+        if (env->ExceptionCheck()) env->ExceptionClear();
+        failures++;
     }
 
     if (RegisterSimpleLicenseVerifierNatives(env) != 0) {
-        __android_log_print(ANDROID_LOG_ERROR, "BearMod", "Failed to register SimpleLicenseVerifier natives");
-        return -1;
+        __android_log_print(ANDROID_LOG_WARN, "BearMod", "OnLoad: SimpleLicenseVerifier natives not registered (optional)");
+        if (env->ExceptionCheck()) env->ExceptionClear();
     }
 
     if (RegisterNonRootPatchManagerNatives(env) != 0) {
-        __android_log_print(ANDROID_LOG_ERROR, "BearMod", "Failed to register NonRootPatchManager natives");
-        return -1;
-    }
-
-    if (RegisterNonRootManagerNatives(env) != 0) {
-        __android_log_print(ANDROID_LOG_ERROR, "BearMod", "Failed to register NonRootManager natives");
-        return -1;
-    }
-
-    if (RegisterSecurityManagerNatives(env) != 0) {
-        __android_log_print(ANDROID_LOG_ERROR, "BearMod", "Failed to register SecurityManager natives");
-        return -1;
+        __android_log_print(ANDROID_LOG_WARN, "BearMod", "OnLoad: NonRootPatchManager natives not registered (optional)");
+        if (env->ExceptionCheck()) env->ExceptionClear();
     }
 
     if (RegisterNativeLibNatives(env) != 0) {
-        __android_log_print(ANDROID_LOG_ERROR, "BearMod", "Failed to register NativeLib natives");
-        return -1;
+        __android_log_print(ANDROID_LOG_ERROR, "BearMod", "OnLoad: Failed to register NativeLib natives (will continue)");
+        if (env->ExceptionCheck()) env->ExceptionClear();
+        failures++;
     }
 
     // Start background threads (disabled here to keep JNI_OnLoad minimal and avoid undefined symbols).
@@ -487,7 +424,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
     // pthread_create(&t, nullptr, Init_Thread, 0);
     // pthread_create(&t, nullptr, maps_thread, 0);
 
-    __android_log_print(ANDROID_LOG_INFO, "BearMod", "JNI_OnLoad completed successfully");
+    __android_log_print(ANDROID_LOG_INFO, "BearMod", "JNI_OnLoad completed with %d failure(s)", failures);
     return JNI_VERSION_1_6;
 }
 

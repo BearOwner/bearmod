@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build (assembleDebug)
@@ -44,11 +47,54 @@ jobs:
       - name: Assemble Debug
         run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
 
-      - name: Run unit tests
-        run: ./gradlew test --stacktrace --no-daemon
+      - name: Run Unit Tests (debug)
+        run: ./gradlew :app:testDebugUnitTest --stacktrace --no-daemon
 
       - name: Android Lint (debug)
         run: ./gradlew :app:lintDebug --stacktrace --no-daemon
+
+      - name: Checkstyle (Javadoc enforcement)
+        run: ./gradlew :app:checkstyleMain :app:checkstyleTest --stacktrace --no-daemon
+
+      - name: Kotlin Style (ktlint, warning-only)
+        continue-on-error: true
+        run: ./gradlew :app:ktlintCheck --stacktrace --no-daemon
+
+      - name: Install cppcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cppcheck
+
+      - name: C++ Static Analysis (cppcheck, warning-only)
+        continue-on-error: true
+        run: |
+          cppcheck --std=c++17 --enable=warning,style,performance \
+                   --suppress=missingIncludeSystem \
+                   app/src/main/cpp app/src/test/cpp || true
+
+      - name: Run Native Tests
+        run: |
+          cmake -S app/src/test/cpp -B app/src/test/cpp/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build app/src/test/cpp/build --config Release -- -j2
+          ctest --test-dir app/src/test/cpp/build --output-on-failure
+
+      - name: Validate JNI Bindings
+        id: validate_jni
+        continue-on-error: true
+        run: python3 jni_validator.py app
+
+      - name: Upload JNI Validation Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jni-validation-report
+          path: app/jni_validation_report.txt
+
+      - name: Fail on JNI validation errors
+        if: steps.validate_jni.outcome == 'failure'
+        run: |
+          echo "JNI validation failed. See the 'jni-validation-report' artifact for details." >&2
+          exit 1
 
       - name: Upload debug APK
         if: success()
@@ -126,3 +172,49 @@ jobs:
           path: |
             app/build/outputs/apk/release/*.apk
             app/build/outputs/bundle/release/*.aab
+
+  instrumented-tests:
+    name: Instrumented Tests (emulator, non-blocking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    needs: build
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Enable KVM
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils
+          sudo adduser $USER libvirt || true
+          sudo adduser $USER kvm || true
+
+      - name: Run connected tests on emulator (API 30)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          target: default
+          force-avd-creation: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-boot-anim
+          disable-animations: true
+          script: |
+            ./gradlew :app:connectedDebugAndroidTest --stacktrace --no-daemon
+
+      - name: Upload AndroidTest Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: androidTest-reports
+          path: |
+            app/build/reports/androidTests/*
+            app/build/outputs/androidTest-results/connected/*
