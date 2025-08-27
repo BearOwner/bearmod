@@ -51,32 +51,23 @@ Java.perform(function() {
 // Hook native functions
 function hookNativeFunctions() {
     console.log("[*] Hooking native functions");
-    
-    // Find the bearmod module
+
     var bearmodModule = Process.findModuleByName("libbearmod.so");
-    if (!bearmodModule) {
-        console.log("[!] libbearmod.so module not found");
-        return;
-    }
-    
-    console.log("[*] Found libbearmod.so at base address: " + bearmodModule.base);
-    
-    // Enumerate exports
-    var exports = bearmodModule.enumerateExports();
-    console.log("[*] Found " + exports.length + " exported functions");
-    
-    // Hook interesting functions
-    exports.forEach(function(exp) {
-        if (exp.type === 'function' && 
-            (exp.name.includes("JNI_") || 
-             exp.name.includes("Java_") || 
-             exp.name.includes("init"))) {
-            
-            console.log("[*] Hooking function: " + exp.name);
-            
+    if (!bearmodModule) return console.log("[!] libbearmod.so not found");
+
+    bearmodModule.enumerateExports().forEach(function(exp) {
+        if (exp.type === 'function' && /JNI_|init/.test(exp.name)) {
+            console.log("[*] Hooking: " + exp.name);
+
             Interceptor.attach(exp.address, {
                 onEnter: function(args) {
-                    console.log("[*] Called " + exp.name);
+                    try {
+                        console.log("[*] " + exp.name + " called");
+                        // Example: log first arg if string
+                        if (args[0] && Memory.readUtf8String(args[0])) {
+                            console.log("    arg0: " + Memory.readUtf8String(args[0]));
+                        }
+                    } catch (e) { }
                 },
                 onLeave: function(retval) {
                     console.log("[*] " + exp.name + " returned: " + retval);
@@ -85,5 +76,6 @@ function hookNativeFunctions() {
         }
     });
 }
+
 
 console.log("[*] Quick Hook script initialized");

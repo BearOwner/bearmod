@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "d:/injector/bearmod/app/src/main/cpp",
-      "program": "d:/injector/bearmod/app/src/main/cpp/build/Debug/outDebug",
+      "cwd": "d:/injector/bearmod/app/src/main/cpp/BYPASS",
+      "program": "d:/injector/bearmod/app/src/main/cpp/BYPASS/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [

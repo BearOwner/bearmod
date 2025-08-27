@@ -18,7 +18,7 @@ local.properties
 signing.properties
 *.jks
 *.keystore
-keys/
+keystore/
 
 # Base64-encoded keystores or secrets (do not commit)
 *.b64
@@ -69,3 +69,8 @@ vcs.xml
 # --- OS junk ---
 .DS_Store
 Thumbs.db
+
+# --- Obfuscation mapping (R8) ---
+# Do not commit the mapping files; keep them in secure artifact storage
+app/obf/mapping-*.txt
+app/obf/mapping-current.txt

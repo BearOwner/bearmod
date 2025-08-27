@@ -1,13 +1,22 @@
 /**
  * BearMod Gadget Manager
- * 
- * Secure Frida Gadget management for non-root injection
- * Integrates with KeyAuth and BearToken authentication
+ *
+ * Manages KeyAuth session validation and security checks for ptrace-based injection.
+ *
+ * ARCHITECTURE:
+ * - Uses KeyAuth session tokens (no separate bearTokens)
+ * - Integrates with ptrace-based injection via HybridInjectionManager
+ * - Provides security monitoring and validation for non-root injection
+ * - Coordinates with native injection.cpp for actual injection execution
+ *
+ * This manager handles:
+ * - KeyAuth session token retrieval and validation
+ * - Security environment checks
+ * - Anti-detection measures
+ * - Injection readiness verification
  */
 
-const config = require('../config.js');
-
-console.log("[*] BearMod Gadget Manager Loaded");
+console.log("[*] BearMod Gadget Manager - KeyAuth Session & Security Management");
 
 /**
  * Gadget Manager Class
@@ -16,37 +25,38 @@ console.log("[*] BearMod Gadget Manager Loaded");
 class GadgetManager {
     constructor() {
         this.initialized = false;
-        this.keyAuthValidated = false;
-        this.bearToken = null;
+        this.keyAuthSessionValid = false;
+        this.keyAuthToken = null;
         this.injectionActive = false;
         this.securityLevel = config.nonRoot.keyAuth.licenseLevel;
-        
+
         // Security monitoring
         this.lastSecurityCheck = Date.now();
         this.securityCheckInterval = config.nonRoot.keyAuth.checkInterval;
-        
+
         console.log("[*] GadgetManager initialized with security level: " + this.securityLevel);
     }
     
     /**
-     * Initialize gadget with KeyAuth validation
+     * Initialize gadget with KeyAuth session validation
      */
-    async initialize(bearToken) {
+    async initialize() {
         console.log("[*] Initializing Gadget Manager...");
-        
+
         try {
-            // Validate BearToken
-            if (!bearToken) {
-                throw new Error("BearToken required for non-root features");
+            // Get KeyAuth session token from Java layer
+            this.keyAuthToken = this.getKeyAuthSessionToken();
+            if (!this.keyAuthToken) {
+                throw new Error("KeyAuth session token required for non-root features");
             }
-            
-            this.bearToken = bearToken;
-            
-            // Validate KeyAuth license
+
+            console.log("[*] Retrieved KeyAuth session token (length: " + this.keyAuthToken.length + ")");
+
+            // Validate KeyAuth session
             if (config.nonRoot.keyAuth.validateBeforeInjection) {
-                const licenseValid = await this.validateKeyAuthLicense();
-                if (!licenseValid) {
-                    throw new Error("Invalid KeyAuth license for non-root features");
+                const sessionValid = await this.validateKeyAuthSession();
+                if (!sessionValid) {
+                    throw new Error("Invalid KeyAuth session for non-root features");
                 }
             }
             
@@ -67,11 +77,11 @@ class GadgetManager {
             }
             
             this.initialized = true;
-            this.keyAuthValidated = true;
-            
+            this.keyAuthSessionValid = true;
+
             console.log("[+] Gadget Manager initialized successfully");
             return true;
-            
+
         } catch (error) {
             console.log("[-] Failed to initialize Gadget Manager: " + error.message);
             return false;
@@ -79,43 +89,94 @@ class GadgetManager {
     }
     
     /**
-     * Validate KeyAuth license for non-root features
+     * Validate KeyAuth session for non-root features
      */
-    async validateKeyAuthLicense() {
-        console.log("[*] Validating KeyAuth license...");
-        
+    async validateKeyAuthSession() {
+        console.log("[*] Validating KeyAuth session...");
+
         try {
-            // This would integrate with your existing KeyAuth system
-            // For now, we'll simulate the validation
-            
+            // Check if session is valid via Java layer
+            const sessionValid = this.isKeyAuthSessionValid();
+            if (!sessionValid) {
+                console.log("[-] KeyAuth session is not valid");
+                return false;
+            }
+
             // Check license level
             const requiredLevel = config.nonRoot.keyAuth.licenseLevel;
             console.log("[*] Required license level: " + requiredLevel);
-            
-            // Validate BearToken format and signature
-            if (!this.bearToken || this.bearToken.length < 32) {
-                console.log("[-] Invalid BearToken format");
+
+            // Validate KeyAuth token format
+            if (!this.keyAuthToken || this.keyAuthToken.length < 32) {
+                console.log("[-] Invalid KeyAuth token format");
                 return false;
             }
-            
+
             // Check if license allows non-root features
-            // This should integrate with your KeyAuth API
             const licenseData = await this.fetchLicenseData();
-            
+
             if (licenseData && licenseData.nonRootEnabled) {
-                console.log("[+] KeyAuth license validated for non-root features");
+                console.log("[+] KeyAuth session validated for non-root features");
                 return true;
             } else {
-                console.log("[-] License does not include non-root features");
+                console.log("[-] Session does not include non-root features");
                 return false;
             }
-            
+
         } catch (error) {
-            console.log("[-] KeyAuth validation failed: " + error.message);
+            console.log("[-] KeyAuth session validation failed: " + error.message);
             return false;
         }
     }
     
+    /**
+     * Get KeyAuth session token from Java layer
+     */
+    getKeyAuthSessionToken() {
+        try {
+            if (Java.available) {
+                return Java.perform(function() {
+                    const UnifiedKeyAuthService = Java.use("com.bearmod.security.UnifiedKeyAuthService");
+                    const ActivityThread = Java.use("android.app.ActivityThread");
+                    const context = ActivityThread.currentApplication().getApplicationContext();
+
+                    const authService = UnifiedKeyAuthService.getInstance(context);
+                    return authService.getSessionTokenForJS();
+                });
+            } else {
+                console.log("[-] Java runtime not available for token retrieval");
+                return null;
+            }
+        } catch (error) {
+            console.log("[-] Failed to get KeyAuth session token: " + error.message);
+            return null;
+        }
+    }
+
+    /**
+     * Check if KeyAuth session is valid via Java layer
+     */
+    isKeyAuthSessionValid() {
+        try {
+            if (Java.available) {
+                return Java.perform(function() {
+                    const UnifiedKeyAuthService = Java.use("com.bearmod.security.UnifiedKeyAuthService");
+                    const ActivityThread = Java.use("android.app.ActivityThread");
+                    const context = ActivityThread.currentApplication().getApplicationContext();
+
+                    const authService = UnifiedKeyAuthService.getInstance(context);
+                    return authService.isSessionValidForJS();
+                });
+            } else {
+                console.log("[-] Java runtime not available for session validation");
+                return false;
+            }
+        } catch (error) {
+            console.log("[-] Failed to validate KeyAuth session: " + error.message);
+            return false;
+        }
+    }
+
     /**
      * Fetch license data from KeyAuth (placeholder)
      */
@@ -232,7 +293,7 @@ class GadgetManager {
         
         try {
             // Load enhanced anti-detection module
-            const antiDetection = require('../anti-detection.js');
+            const antiDetection = require('../patches/anti-detection/script.js');
             antiDetection.setupNonRootAntiDetection();
             
             console.log("[+] Anti-detection measures activated");
@@ -265,11 +326,11 @@ class GadgetManager {
         if (now - this.lastSecurityCheck > this.securityCheckInterval) {
             console.log("[*] Performing periodic security check...");
             
-            // Re-validate license
+            // Re-validate session
             if (config.nonRoot.keyAuth.validateBeforeInjection) {
-                this.validateKeyAuthLicense().then(valid => {
+                this.validateKeyAuthSession().then(valid => {
                     if (!valid) {
-                        console.log("[-] License validation failed during periodic check");
+                        console.log("[-] Session validation failed during periodic check");
                         this.shutdown();
                     }
                 });
@@ -292,9 +353,9 @@ class GadgetManager {
         console.log("[*] Shutting down Gadget Manager...");
         
         this.initialized = false;
-        this.keyAuthValidated = false;
+        this.keyAuthSessionValid = false;
         this.injectionActive = false;
-        this.bearToken = null;
+        this.keyAuthToken = null;
         
         console.log("[+] Gadget Manager shutdown complete");
     }
@@ -305,7 +366,7 @@ class GadgetManager {
     getStatus() {
         return {
             initialized: this.initialized,
-            keyAuthValidated: this.keyAuthValidated,
+            keyAuthSessionValid: this.keyAuthSessionValid,
             injectionActive: this.injectionActive,
             securityLevel: this.securityLevel,
             lastSecurityCheck: this.lastSecurityCheck

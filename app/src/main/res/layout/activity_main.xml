@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/premium_background">
+    android:background="@color/background">
 
     <!-- Splash Screen Layout -->
     <LinearLayout
@@ -14,7 +14,7 @@
         android:orientation="vertical"
         android:gravity="center"
         android:padding="32dp"
-        android:background="@color/premium_background">
+        android:background="@color/background">
 
         <!-- Logo Container -->
         <FrameLayout
@@ -78,12 +78,12 @@
 
     </LinearLayout>
 
-    <!-- Modern Main App Layout -->
+    <!-- Modern Main App Layout: HOME -->
     <ScrollView
         android:id="@+id/main_app_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/premium_background"
+        android:background="@color/background"
         android:visibility="gone"
         android:alpha="0"
         android:fillViewport="true">
@@ -92,7 +92,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="16dp"
+            android:animateLayoutChanges="true">
 
             <!-- Countdown Timer Section -->
             <LinearLayout
@@ -182,6 +183,102 @@
 
             </LinearLayout>
 
+            <!-- Game Status Card (Install/Version/OBB + Fix CTA) -->
+            <LinearLayout
+                android:id="@+id/game_status_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/modern_card_background"
+                android:padding="16dp"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:id="@+id/text_game_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/premium_text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:text="Game: Not selected"
+                    tools:ignore="HardcodedText" />
+
+                <TextView
+                    android:id="@+id/text_game_version"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/premium_text_secondary"
+                    android:textSize="14sp"
+                    android:text="Version: —"
+                    android:layout_marginTop="4dp"
+                    tools:ignore="HardcodedText" />
+
+                <TextView
+                    android:id="@+id/text_obb_status"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/premium_text_secondary"
+                    android:textSize="14sp"
+                    android:text="OBB: —"
+                    android:layout_marginTop="4dp"
+                    tools:ignore="HardcodedText" />
+
+                <Button
+                    android:id="@+id/btn_fix_obb"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="Fix OBB"
+                    android:textColor="@color/premium_text_primary"
+                    android:background="@drawable/modern_option_button"
+                    android:layout_marginTop="12dp"
+                    android:visibility="gone"
+                    tools:ignore="HardcodedText" />
+
+            </LinearLayout>
+
+            <!-- Patch/Service Progress Banner -->
+            <LinearLayout
+                android:id="@+id/patch_progress_banner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/modern_card_background"
+                android:padding="12dp"
+                android:layout_marginBottom="16dp"
+                android:visibility="gone">
+
+                <ProgressBar
+                    android:id="@+id/patch_progress_spinner"
+                    style="?android:attr/progressBarStyleSmall"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:indeterminate="true"
+                    android:indeterminateTint="@color/primary"/>
+
+                <TextView
+                    android:id="@+id/patch_progress_text"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:text="Applying patches…"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp"
+                    tools:ignore="HardcodedText"/>
+
+                <Button
+                    android:id="@+id/patch_cancel_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="Cancel"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_primary"
+                    android:background="@drawable/modern_option_button"
+                    tools:ignore="HardcodedText"/>
+
+            </LinearLayout>
+
             <!-- Central Bear Logo -->
             <FrameLayout
                 android:layout_width="160dp"
@@ -224,6 +321,7 @@
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:background="@drawable/modern_start_button"
+                    android:foreground="?attr/selectableItemBackgroundBorderless"
                     android:layout_marginEnd="8dp"
                     android:enabled="true"
                     tools:ignore="HardcodedText" />
@@ -238,6 +336,7 @@
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:background="@drawable/modern_stop_button"
+                    android:foreground="?attr/selectableItemBackgroundBorderless"
                     android:layout_marginStart="8dp"
                     android:enabled="false"
                     tools:ignore="HardcodedText" />
@@ -281,6 +380,7 @@
                         android:textSize="12sp"
                         android:textStyle="bold"
                         android:background="@drawable/modern_region_button"
+                        android:foreground="?attr/selectableItemBackgroundBorderless"
                         android:layout_margin="4dp"
                         tools:ignore="HardcodedText" />
 
@@ -294,6 +394,7 @@
                         android:textSize="12sp"
                         android:textStyle="bold"
                         android:background="@drawable/modern_region_button"
+                        android:foreground="?attr/selectableItemBackgroundBorderless"
                         android:layout_margin="4dp"
                         tools:ignore="HardcodedText" />
 
@@ -307,6 +408,7 @@
                         android:textSize="12sp"
                         android:textStyle="bold"
                         android:background="@drawable/modern_region_button"
+                        android:foreground="?attr/selectableItemBackgroundBorderless"
                         android:layout_margin="4dp"
                         tools:ignore="HardcodedText" />
 
@@ -320,6 +422,7 @@
                         android:textSize="12sp"
                         android:textStyle="bold"
                         android:background="@drawable/modern_region_button"
+                        android:foreground="?attr/selectableItemBackgroundBorderless"
                         android:layout_margin="4dp"
                         tools:ignore="HardcodedText" />
 
@@ -333,6 +436,7 @@
                         android:textSize="12sp"
                         android:textStyle="bold"
                         android:background="@drawable/modern_region_button"
+                        android:foreground="?attr/selectableItemBackgroundBorderless"
                         android:layout_margin="4dp"
                         tools:ignore="HardcodedText" />
 
@@ -358,6 +462,7 @@
                     android:textSize="14sp"
                     android:textStyle="bold"
                     android:background="@drawable/modern_option_button"
+                    android:foreground="?attr/selectableItemBackgroundBorderless"
                     android:layout_marginEnd="8dp"
                     tools:ignore="HardcodedText" />
 
@@ -371,6 +476,7 @@
                     android:textSize="14sp"
                     android:textStyle="bold"
                     android:background="@drawable/modern_option_button"
+                    android:foreground="?attr/selectableItemBackgroundBorderless"
                     android:layout_marginStart="8dp"
                     tools:ignore="HardcodedText" />
 
@@ -476,8 +582,9 @@
                 android:layout_height="0dp"
                 android:visibility="gone" />
 
-            <!-- Bottom Navigation -->
+            <!-- Bottom Navigation (icon-only) -->
             <LinearLayout
+                android:id="@+id/bottom_nav"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
@@ -486,41 +593,29 @@
                 android:padding="12dp"
                 android:layout_marginTop="16dp">
 
-                <Button
+                <ImageButton
                     android:id="@+id/nav_home"
                     android:layout_width="0dp"
                     android:layout_height="48dp"
                     android:layout_weight="1"
-                    android:text="Home"
-                    android:textColor="@color/premium_text_primary"
-                    android:textSize="12sp"
                     android:background="@drawable/modern_nav_button"
-                    android:layout_marginHorizontal="4dp"
-                    tools:ignore="HardcodedText" />
+                    android:foreground="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_home"
+                    android:contentDescription="@string/app_name"
+                    android:tint="@color/premium_text_primary"
+                    android:layout_marginHorizontal="4dp" />
 
-                <Button
+                <ImageButton
                     android:id="@+id/nav_settings"
                     android:layout_width="0dp"
                     android:layout_height="48dp"
                     android:layout_weight="1"
-                    android:text="Settings"
-                    android:textColor="@color/premium_text_secondary"
-                    android:textSize="12sp"
                     android:background="@drawable/modern_nav_button"
-                    android:layout_marginHorizontal="4dp"
-                    tools:ignore="HardcodedText" />
-
-                <Button
-                    android:id="@+id/nav_other"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:text="Other"
-                    android:textColor="@color/premium_text_secondary"
-                    android:textSize="12sp"
-                    android:background="@drawable/modern_nav_button"
-                    android:layout_marginHorizontal="4dp"
-                    tools:ignore="HardcodedText" />
+                    android:foreground="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_setting"
+                    android:contentDescription="@string/app_name"
+                    android:tint="@color/premium_text_secondary"
+                    android:layout_marginHorizontal="4dp" />
 
             </LinearLayout>
 
@@ -537,6 +632,103 @@
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 android:visibility="gone" />
+
+        </LinearLayout>
+
+    </ScrollView>
+
+    <!-- Settings Page -->
+    <ScrollView
+        android:id="@+id/settings_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/background"
+        android:visibility="gone"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:animateLayoutChanges="true">
+
+            <!-- Preferences Card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/modern_card_background"
+                android:padding="16dp"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Preferences"
+                    android:textColor="@color/premium_text_primary"
+                    android:textStyle="bold"
+                    android:textSize="16sp"
+                    tools:ignore="HardcodedText" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/switch_auto_clear"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Auto clear data on Stop/Exit"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginTop="12dp"
+                    tools:ignore="HardcodedText" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/switch_fast_download"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Prefer faster downloads/updates"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginTop="8dp"
+                    tools:ignore="HardcodedText" />
+
+            </LinearLayout>
+
+            <!-- Actions Card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/modern_card_background"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Actions"
+                    android:textColor="@color/premium_text_primary"
+                    android:textStyle="bold"
+                    android:textSize="16sp"
+                    tools:ignore="HardcodedText" />
+
+                <Button
+                    android:id="@+id/btn_clear_data_now"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="Clear Data Now"
+                    android:textColor="@color/premium_text_primary"
+                    android:background="@drawable/modern_option_button"
+                    android:layout_marginTop="12dp"
+                    tools:ignore="HardcodedText" />
+
+                <Button
+                    android:id="@+id/btn_exit_app"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="Exit"
+                    android:textColor="@color/premium_text_primary"
+                    android:background="@drawable/modern_stop_button"
+                    android:layout_marginTop="8dp"
+                    tools:ignore="HardcodedText" />
+
+            </LinearLayout>
 
         </LinearLayout>
 

@@ -1,8 +1,9 @@
 /**
  * BearMod Injection Controller
- * 
+ *
  * Controls script injection timing and target app detection
- * Integrates with Gadget Manager for secure injection
+ * Updated for ptrace-based injection architecture (no Frida Gadget)
+ * Coordinates with HybridInjectionManager for native injection
  */
 
 const config = require('../config.js');
@@ -22,6 +23,12 @@ class InjectionController {
         this.maxRetries = config.nonRoot.injection.retryCount;
         this.injectionTimeout = config.nonRoot.injection.timeoutMs;
         this.autoStart = config.nonRoot.injection.autoStart;
+
+        // Config-driven features
+        this.enableStealth = config.enableStealth;
+        this.bypassSignature = config.bypassSignature;
+        this.bypassSSLPinning = config.bypassSSLPinning;
+        this.analyzeApp = config.analyzeApp;
         
         // Callbacks
         this.progressCallback = null;
@@ -296,8 +303,8 @@ class InjectionController {
         try {
             // Check gadget manager status
             const gadgetStatus = global.BearModGadgetManager.getStatus();
-            if (!gadgetStatus.keyAuthValidated) {
-                console.log("[-] KeyAuth validation required");
+            if (!gadgetStatus.keyAuthSessionValid) {
+                console.log("[-] KeyAuth session validation required");
                 return false;
             }
             
@@ -328,9 +335,9 @@ class InjectionController {
         try {
             // Load core BearMod scripts
             const coreScripts = [
-                '../bearmod_analyzer.js',
-                '../bypass-ssl-pinning.js',
-                '../bypass-signature-verification.js'
+                '../patches/analyzer/script.js',
+                '../patches/bypass-ssl/script.js',
+                '../patches/bypass-signkill/script.js'
             ];
             
             for (const scriptPath of coreScripts) {

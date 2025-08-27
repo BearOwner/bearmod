@@ -1,12 +1,14 @@
 package com.bearmod.activity;
 
 import android.annotation.SuppressLint;
+import android.app.ActivityManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CountDownTimer; // Legacy CountDownTimer for cleanup compatibility
 import android.os.Handler; // Legacy Handler for cleanup compatibility
+import android.os.Looper;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
@@ -15,6 +17,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ImageButton;
 import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -27,10 +30,12 @@ import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
 
 import com.bearmod.R;
+import com.bearmod.Floating;
 import com.bearmod.TargetAppManager;
-import com.bearmod.AntiDetectionManager;
 import com.bearmod.InstallerPackageManager;
 import com.bearmod.PermissionManager;
+import com.bearmod.security.DataClearingManager;
+import com.bearmod.patch.StartupOrchestrator;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -71,11 +76,18 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private static final int REQUEST_PERMISSIONS = 1001;
+    // SharedPreferences keys for persisting last selected target
+    private static final String PREFS_NAME = "bearmod_prefs";
+    private static final String KEY_LAST_TARGET = "last_target_pkg";
 
     private TextView serviceStatus;
     private TextView targetStatusText;
+    // Game Status card views
+    private TextView textGameName, textGameVersion, textObbStatus;
+    private Button btnFixObb;
     private Button startButton, stopButton, exitButton;
     private Spinner targetBundleSpinner;
+    // Patch progress UI removed (automatic, no user-facing UI)
 
     // License countdown timer UI components
     private TextView countdownDays, countdownHours, countdownMinutes, countdownSeconds;
@@ -95,11 +107,18 @@ public class MainActivity extends AppCompatActivity {
     private ImageView detectionStatusIcon;
     private TextView safeStatus, unsafeStatus;
 
-    // Navigation buttons
-    private Button navHome, navSettings;
+    // Navigation (icon) buttons
+    private ImageButton navHome, navSettings;
 
-    // Main app layout component
+    // Main sections
     private ScrollView mainAppLayout;
+    private ScrollView settingsLayout;
+
+    // Settings controls
+    private androidx.appcompat.widget.SwitchCompat switchAutoClear;
+    private androidx.appcompat.widget.SwitchCompat switchFastDownload;
+    private Button btnClearDataNow;
+    private Button btnExitApp;
 
     // Managers
     private TargetAppManager targetAppManager;
@@ -117,6 +136,10 @@ public class MainActivity extends AppCompatActivity {
     private Handler countdownHandler;
     private Runnable countdownRunnable;
 
+    // Pending OBB fix context
+    private String pendingObbPackage;
+    private java.io.File pendingObbSource;
+
     // Modern Activity Result API for overlay permission
     private final ActivityResultLauncher<Intent> overlayPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
@@ -131,6 +154,36 @@ public class MainActivity extends AppCompatActivity {
                             showPermissionDeniedDialog();
                         }
                     });
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        try {
+            // Handle OBB tree selection result
+            boolean handled = com.bearmod.PermissionManager.Companion.getInstance(this)
+                    .handleObbTreeResult(this, requestCode, data,
+                            pendingObbPackage != null ? pendingObbPackage : (selectedTargetPackage != null ? selectedTargetPackage : ""),
+                            () -> {
+                                try {
+                                    if (pendingObbPackage != null && pendingObbSource != null) {
+                                        boolean ok = com.bearmod.install.ObbInstaller.copyFromSource(this, pendingObbPackage, pendingObbSource);
+                                        android.widget.Toast.makeText(this, ok ? "OBB placed successfully" : "OBB copy failed", android.widget.Toast.LENGTH_LONG).show();
+                                        updateTargetStatus(pendingObbPackage, installerPackageManager.getPackageDisplayName(pendingObbPackage));
+                                    }
+                                } catch (Exception e) {
+                                    Log.w(TAG, "copy after SAF persist failed", e);
+                                } finally {
+                                    pendingObbPackage = null;
+                                    pendingObbSource = null;
+                                }
+                                return kotlin.Unit.INSTANCE;
+                            }
+                    );
+            if (handled) return;
+        } catch (Exception e) {
+            Log.w(TAG, "onActivityResult OBB tree handling failed", e);
+        }
+    }
 
     // Modern Activity Result API for unknown sources permission
     private final ActivityResultLauncher<Intent> unknownSourcesPermissionLauncher =
@@ -196,11 +249,19 @@ public class MainActivity extends AppCompatActivity {
         serviceStatus = findViewById(R.id.service_status);
         startButton = findViewById(R.id.start_button);
         stopButton = findViewById(R.id.stop_button);
+        // Patch progress UI removed
         exitButton = findViewById(R.id.exit_button);
 
         // Target bundle selection
         targetBundleSpinner = findViewById(R.id.target_bundle_spinner);
         targetStatusText = findViewById(R.id.target_status_text);
+        // Game Status card
+        textGameName = findViewById(R.id.text_game_name);
+        textGameVersion = findViewById(R.id.text_game_version);
+        textObbStatus = findViewById(R.id.text_obb_status);
+        btnFixObb = findViewById(R.id.btn_fix_obb);
+
+        // Region buttons are assigned below and listeners are set in setupRegionButtons()
 
         // License countdown timer components
         countdownDays = findViewById(R.id.countdown_days);
@@ -222,18 +283,24 @@ public class MainActivity extends AppCompatActivity {
         safeStatus = findViewById(R.id.safe_status);
         unsafeStatus = findViewById(R.id.unsafe_status);
 
-        // Navigation buttons
+        // Navigation buttons (icons)
         navHome = findViewById(R.id.nav_home);
         navSettings = findViewById(R.id.nav_settings);
 
-        // Main app layout component
+        // Main sections
         mainAppLayout = findViewById(R.id.main_app_layout);
+        settingsLayout = findViewById(R.id.settings_layout);
+
+        // Settings controls
+        switchAutoClear = findViewById(R.id.switch_auto_clear);
+        switchFastDownload = findViewById(R.id.switch_fast_download);
+        btnClearDataNow = findViewById(R.id.btn_clear_data_now);
+        btnExitApp = findViewById(R.id.btn_exit_app);
     }
 
     private void initializeManagers() {
         // Initialize managers
         targetAppManager = new TargetAppManager(this);
-        AntiDetectionManager antiDetectionManager = new AntiDetectionManager(this);
         installerPackageManager = new InstallerPackageManager(this);
         autoPatchManager = com.bearmod.patch.AutoPatchManager.getInstance(this);
         permissionManager = PermissionManager.Companion.getInstance(this); // Initialize PermissionManager singleton
@@ -252,14 +319,29 @@ public class MainActivity extends AppCompatActivity {
         // STOP button - Stop floating services and cleanup
         stopButton.setOnClickListener(v -> stopModService());
 
-        // EXIT button
-        exitButton.setOnClickListener(v -> finish());
+        // EXIT button (legacy hidden)
+        exitButton.setOnClickListener(v -> handleExitRequested());
 
         // Region selection buttons
         setupRegionButtons();
 
         // Navigation buttons
         setupNavigationButtons();
+
+        // Settings controls
+        setupSettingsControls();
+
+        // Fix OBB CTA
+        if (btnFixObb != null) {
+            btnFixObb.setOnClickListener(v -> {
+                String pkg = selectedTargetPackage;
+                if (pkg != null) {
+                    attemptFixObbFlow(pkg);
+                } else {
+                    android.widget.Toast.makeText(this, "Select a game first", android.widget.Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
     }
 
     private void setupRegionButtons() {
@@ -290,6 +372,11 @@ public class MainActivity extends AppCompatActivity {
         // Update target package
         selectedTargetPackage = packageName;
         updateServerStatus(regionName, packageName);
+        // Also refresh detailed game status card
+        try {
+            String displayName = installerPackageManager != null ? installerPackageManager.getPackageDisplayName(packageName) : packageName;
+            updateTargetStatus(packageName, displayName);
+        } catch (Exception ignored) {}
 
         Log.d(TAG, "Region selected: " + regionName + " (" + packageName + ")");
     }
@@ -304,23 +391,86 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupNavigationButtons() {
         if (navHome != null) {
-            navHome.setOnClickListener(v -> selectNavigation(navHome, "Home"));
-            navHome.setSelected(true); // Default selection
+            navHome.setOnClickListener(v -> selectNavigation("Home"));
         }
         if (navSettings != null) {
-            navSettings.setOnClickListener(v -> selectNavigation(navSettings, "Settings"));
+            navSettings.setOnClickListener(v -> selectNavigation("Settings"));
+        }
+        // Default to Home
+        selectNavigation("Home");
+    }
+
+    private void selectNavigation(String navName) {
+        boolean isHome = "Home".equals(navName);
+        if (mainAppLayout != null) mainAppLayout.setVisibility(isHome ? View.VISIBLE : View.GONE);
+        if (settingsLayout != null) settingsLayout.setVisibility(isHome ? View.GONE : View.VISIBLE);
+
+        // Tint icons
+        try {
+            if (navHome != null)
+                navHome.setColorFilter(ContextCompat.getColor(this, isHome ? R.color.premium_text_primary : R.color.premium_text_secondary));
+            if (navSettings != null)
+                navSettings.setColorFilter(ContextCompat.getColor(this, !isHome ? R.color.premium_text_primary : R.color.premium_text_secondary));
+        } catch (Exception ignored) {}
+
+        Log.d(TAG, "Navigation selected: " + navName);
+    }
+
+    private static final String PREFS = "bearmod_prefs";
+    private static final String KEY_AUTO_CLEAR = "auto_clear";
+    private static final String KEY_FAST_DOWNLOAD = "fast_download";
+
+    private void setupSettingsControls() {
+        final android.content.SharedPreferences sp = getSharedPreferences(PREFS, MODE_PRIVATE);
+        boolean autoClear = sp.getBoolean(KEY_AUTO_CLEAR, true);
+        boolean fastDl = sp.getBoolean(KEY_FAST_DOWNLOAD, false);
+
+        if (switchAutoClear != null) {
+            switchAutoClear.setChecked(autoClear);
+            switchAutoClear.setOnCheckedChangeListener((b, checked) ->
+                    sp.edit().putBoolean(KEY_AUTO_CLEAR, checked).apply());
+        }
+        if (switchFastDownload != null) {
+            switchFastDownload.setChecked(fastDl);
+            switchFastDownload.setOnCheckedChangeListener((b, checked) ->
+                    sp.edit().putBoolean(KEY_FAST_DOWNLOAD, checked).apply());
+        }
+
+        if (btnClearDataNow != null) {
+            btnClearDataNow.setOnClickListener(v -> performUserRequestedCleanup());
+        }
+        if (btnExitApp != null) {
+            btnExitApp.setOnClickListener(v -> handleExitRequested());
         }
     }
 
-    private void selectNavigation(Button selectedButton, String navName) {
-        // Clear all navigation selections
-        if (navHome != null) navHome.setSelected(false);
-        if (navSettings != null) navSettings.setSelected(false);
+    private boolean isAutoClearEnabled() {
+        return getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean(KEY_AUTO_CLEAR, true);
+    }
 
-        // Select current button
-        selectedButton.setSelected(true);
+    private void performUserRequestedCleanup() {
+        showLoadingSpinner("Cleaning up...");
+        DataClearingManager.getInstance(this).performComprehensiveCleanup(new DataClearingManager.CleanupListener() {
+            @Override public void onCleanupStarted() { updateLoadingMessage("Cleaning up..."); }
+            @Override public void onCleanupProgress(int p, String task) { updateLoadingMessage(task + " (" + p + "%)"); }
+            @Override public void onCleanupCompleted(boolean success) {
+                hideLoadingSpinner();
+                android.widget.Toast.makeText(MainActivity.this, success ? "Data cleared" : "Cleanup completed with warnings", android.widget.Toast.LENGTH_SHORT).show();
+            }
+            @Override public void onCleanupFailed(String error) {
+                hideLoadingSpinner();
+                android.widget.Toast.makeText(MainActivity.this, "Cleanup failed: " + error, android.widget.Toast.LENGTH_LONG).show();
+            }
+        });
+    }
 
-        Log.d(TAG, "Navigation selected: " + navName);
+    private void handleExitRequested() {
+        if (isAutoClearEnabled()) {
+            secureExit(true);
+        } else {
+            try { stopService(new Intent(this, Floating.class)); } catch (Exception ignored) {}
+            finishAffinity();
+        }
     }
 
     private void setupTargetBundleSpinner() {
@@ -368,11 +518,7 @@ public class MainActivity extends AppCompatActivity {
             Log.w(TAG, "No valid target package selected");
         }
 
-        // Trigger auto-patch if configured for target selection
-        if (selectedTargetPackage != null &&
-            autoPatchManager.shouldTriggerAutoPatch(com.bearmod.patch.AutoPatchConfig.AutoPatchTrigger.ON_TARGET_SELECTION)) {
-            triggerAutoPatch();
-        }
+        // No manual patch UI; patching handled automatically during service start
     }
 
     /**
@@ -382,6 +528,10 @@ public class MainActivity extends AppCompatActivity {
     private void updateTargetStatus(String packageName, String prefix) {
         if (packageName == null) {
             targetStatusText.setText("No package selected");
+            if (textGameName != null) textGameName.setText("Game: Not selected");
+            if (textGameVersion != null) textGameVersion.setText("Version: —");
+            if (textObbStatus != null) textObbStatus.setText("OBB: —");
+            if (btnFixObb != null) btnFixObb.setVisibility(View.GONE);
             return;
         }
 
@@ -402,6 +552,8 @@ public class MainActivity extends AppCompatActivity {
                     status.append(" ✓ OBB OK");
                 } else {
                     status.append(" ⚠ OBB Missing");
+                    // Offer user-triggered fix via SAF (verify-only by default, copy only when user asks)
+                    showObbFixSuggestion(packageName);
                 }
             }
         } else {
@@ -409,6 +561,99 @@ public class MainActivity extends AppCompatActivity {
         }
 
         targetStatusText.setText(status.toString());
+
+        // Update modern Game Status card
+        try {
+            if (textGameName != null) textGameName.setText("Game: " + displayName);
+            if (textGameVersion != null) {
+                String version = isInstalled ? installerPackageManager.getInstalledPackageVersion(packageName) : null;
+                textGameVersion.setText("Version: " + (version != null ? version : (isInstalled ? "unknown" : "not installed")));
+            }
+            if (textObbStatus != null) {
+                if (!obbRequired) {
+                    textObbStatus.setText("OBB: Not required");
+                    textObbStatus.setTextColor(ContextCompat.getColor(this, R.color.premium_text_secondary));
+                } else if (obbInstalled) {
+                    textObbStatus.setText("OBB: Present");
+                    textObbStatus.setTextColor(ContextCompat.getColor(this, R.color.premium_accent_green));
+                } else {
+                    textObbStatus.setText("OBB: Missing");
+                    textObbStatus.setTextColor(ContextCompat.getColor(this, R.color.premium_accent_red));
+                }
+            }
+            if (btnFixObb != null) {
+                btnFixObb.setVisibility(isInstalled && obbRequired && !obbInstalled ? View.VISIBLE : View.GONE);
+            }
+        } catch (Exception ignored) {}
+    }
+
+    private void showObbFixSuggestion(String packageName) {
+        try {
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("OBB Missing")
+                    .setMessage("The required game data (OBB) is missing. If you've already downloaded it (e.g., via Telegram or Download), I can place it into the official folder for you.")
+                    .setPositiveButton("Fix OBB", (d, w) -> attemptFixObbFlow(packageName))
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to show OBB fix dialog", e);
+        }
+    }
+
+    private void attemptFixObbFlow(String packageName) {
+        try {
+            int vcode = getInstalledVersionCode(packageName);
+            if (vcode <= 0) {
+                android.widget.Toast.makeText(this, "Cannot resolve game version for OBB name.", android.widget.Toast.LENGTH_LONG).show();
+                return;
+            }
+            // Find candidate OBB in common download locations
+            java.util.List<java.io.File> candidates = com.bearmod.install.ObbLocator.findCandidates(packageName, vcode);
+            if (candidates == null || candidates.isEmpty()) {
+                String expected = "main." + vcode + "." + packageName + ".obb";
+                new androidx.appcompat.app.AlertDialog.Builder(this)
+                        .setTitle("OBB Not Found")
+                        .setMessage("Please place '" + expected + "' into Download or Telegram folders, then tap Fix OBB again.")
+                        .setPositiveButton("OK", null)
+                        .show();
+                return;
+            }
+
+            // Choose the largest candidate (more robust if multiple copies)
+            java.io.File chosen = candidates.get(0);
+            long max = chosen.length();
+            for (java.io.File f : candidates) {
+                if (f.length() > max) { chosen = f; max = f.length(); }
+            }
+
+            // If we already have SAF access to Android/obb/<pkg>, copy immediately
+            boolean hasWrite = com.bearmod.storage.StorageAccessHelper.hasWriteAccess(this, packageName);
+            if (!hasWrite) {
+                // Request tree; remember context and continue in onActivityResult
+                this.pendingObbPackage = packageName;
+                this.pendingObbSource = chosen;
+                com.bearmod.PermissionManager.Companion.getInstance(this)
+                        .requestObbTree(this, packageName, com.bearmod.PermissionManager.REQUEST_OBB_TREE);
+                return;
+            }
+
+            boolean ok = com.bearmod.install.ObbInstaller.copyFromSource(this, packageName, chosen);
+            android.widget.Toast.makeText(this, ok ? "OBB placed successfully" : "OBB copy failed", android.widget.Toast.LENGTH_LONG).show();
+            // Refresh status
+            updateTargetStatus(packageName, installerPackageManager.getPackageDisplayName(packageName));
+        } catch (Exception e) {
+            Log.w(TAG, "attemptFixObbFlow error", e);
+            android.widget.Toast.makeText(this, "Fix OBB failed: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private int getInstalledVersionCode(String packageName) {
+        try {
+            android.content.pm.PackageInfo pi = getPackageManager().getPackageInfo(packageName, 0);
+            return pi.versionCode;
+        } catch (Exception e) {
+            return -1;
+        }
     }
 
     @SuppressLint("SetTextI18n")
@@ -479,7 +724,13 @@ public class MainActivity extends AppCompatActivity {
         // Verify authentication state when app resumes
         if (!LoginActivity.hasValidKey(this)) {
             Log.w(TAG, "Authentication invalid on resume - redirecting to login");
-            finish(); // Close MainActivity and return to SplashActivity flow
+            // Gently redirect without abrupt close
+            android.widget.Toast.makeText(this, "Session expired. Please login.", android.widget.Toast.LENGTH_SHORT).show();
+            try {
+                startActivity(new Intent(this, com.bearmod.activity.LoginActivity.class));
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to start LoginActivity", e);
+            }
             return;
         }
 
@@ -488,6 +739,85 @@ public class MainActivity extends AppCompatActivity {
 
         // Update service status
         updateServiceStatus();
+        // Load last selected target and update UI
+        restoreLastSelectedTarget();
+        updateRegionButtons();
+    }
+
+    private void onRegionSelected(String packageName) {
+        this.selectedTargetPackage = packageName;
+        if (targetStatusText != null) {
+            String display = installerPackageManager != null ? installerPackageManager.getPackageDisplayName(packageName) : packageName;
+            boolean installed = installerPackageManager != null && installerPackageManager.isPackageInstalled(packageName);
+            targetStatusText.setText(display + (installed ? " (Installed)" : " (Not Installed)"));
+        }
+        saveLastSelectedTarget(packageName);
+        updateRegionButtons();
+        // No manual patch triggers here; handled automatically on service start
+
+        // If not installed, guide user to install immediately
+        try {
+            boolean installed = installerPackageManager != null && installerPackageManager.isPackageInstalled(packageName);
+            if (!installed) {
+                showPackageInstallationGuidance(packageName);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Error showing install guidance", e);
+        }
+    }
+
+    private void updateRegionButtons() {
+        if (installerPackageManager == null) return;
+        setRegionButtonState(regionGlobal, "Global", "com.tencent.ig");
+        setRegionButtonState(regionKorea, "Korea", "com.pubg.krmobile");
+        setRegionButtonState(regionIndia, "India", "com.pubg.imobile");
+        setRegionButtonState(regionTaiwan, "Taiwan", "com.rekoo.pubgm");
+        setRegionButtonState(regionVietnam, "Vietnam", "com.vng.pubgmobile");
+    }
+
+    private void setRegionButtonState(Button button, String label, String pkg) {
+        if (button == null) return;
+        boolean installed = installerPackageManager.isPackageInstalled(pkg);
+        String suffix = installed ? " — Open" : " — Install";
+        button.setText(label + suffix);
+        boolean isSelected = pkg.equals(selectedTargetPackage);
+        button.setSelected(isSelected);
+        button.setAlpha(isSelected ? 1.0f : 0.9f);
+
+        // Long-press to open the game directly if installed
+        button.setOnLongClickListener(v -> {
+            if (installed) {
+                try {
+                    boolean launched = targetAppManager.launchTargetPackage(pkg);
+                    Log.d(TAG, "Long-press launch (" + pkg + ") result: " + launched);
+                    return true;
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to launch on long-press", e);
+                }
+            }
+            return false;
+        });
+        // Content description for accessibility
+        button.setContentDescription(label + (installed ? ", installed, long-press to open" : ", not installed, tap to install guidance"));
+    }
+
+    private void saveLastSelectedTarget(String pkg) {
+        try {
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putString(KEY_LAST_TARGET, pkg).apply();
+        } catch (Exception ignored) { }
+    }
+
+    private void restoreLastSelectedTarget() {
+        try {
+            String saved = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString(KEY_LAST_TARGET, null);
+            if (saved != null) {
+                this.selectedTargetPackage = saved;
+            } else {
+                // fallback to auto-detect
+                String autodetected = targetAppManager != null ? targetAppManager.getInstalledTargetPackage() : null;
+                this.selectedTargetPackage = autodetected;
+            }
+        } catch (Exception ignored) { }
     }
 
     /**
@@ -854,78 +1184,221 @@ public class MainActivity extends AppCompatActivity {
      */
     private void proceedWithServiceStart() {
         try {
-            // Apply auto-patches if configured for service start
-            if (autoPatchManager.shouldTriggerAutoPatch(com.bearmod.patch.AutoPatchConfig.AutoPatchTrigger.ON_SERVICE_START)) {
-                Log.d(TAG, "Applying auto-patches before service start");
-                triggerAutoPatch();
-            }
+            // 1) Launch target game immediately
+            boolean launched = selectedTargetPackage != null && targetAppManager.launchTargetPackage(selectedTargetPackage);
+            Log.d(TAG, "Requested launch of target app: " + launched + " (" + selectedTargetPackage + ")");
 
-            // Start the floating service
-            Intent serviceIntent = new Intent(this, com.bearmod.Floating.class);
-            serviceIntent.putExtra("TARGET_PACKAGE", selectedTargetPackage);
-            startService(serviceIntent);
+            // 2) Show loading spinner while we prepare in background
+            showLoadingSpinner("Loading...");
+            if (startButton != null) startButton.setEnabled(false);
 
-            isServiceRunning = true;
-            updateServiceStatus();
+            // 3) Kick off automatic injection/patch workflow (behind the scenes)
+            injectionReady = false;
+            injectionFailed = false;
+            StartupOrchestrator.startAsync(this, selectedTargetPackage, new StartupOrchestrator.Callback() {
+                @Override public void onProgress(int percent, String message) {
+                    updateLoadingMessage(message);
+                }
+                @Override public void onSuccess() {
+                    injectionReady = true;
+                }
+                @Override public void onFailure(String error) {
+                    injectionFailed = true;
+                    Log.e(TAG, "Injection failed: " + error);
+                }
+            });
 
-            android.widget.Toast.makeText(this, "Mod service started successfully", android.widget.Toast.LENGTH_SHORT).show();
-            Log.d(TAG, "Mod service started for package: " + selectedTargetPackage);
-
+            // 4) Poll until the target app is in foreground AND injections are ready, then start floating service
+            pollAndStartFloatingWhenReady();
         } catch (Exception e) {
-            Log.e(TAG, "Error starting floating service", e);
-            android.widget.Toast.makeText(this, "Error starting floating service: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show();
+            Log.e(TAG, "proceedWithServiceStart failed", e);
+            hideLoadingSpinner();
+            if (startButton != null) startButton.setEnabled(true);
+            android.widget.Toast.makeText(this, "Failed: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show();
         }
     }
 
     /**
-     * Stop the mod service and cleanup (correct STOP button functionality)
+     * Poll the system until selected target package is in foreground, then start Floating service.
+     */
+    private volatile boolean injectionReady = false;
+    private volatile boolean injectionFailed = false;
+
+    private void pollAndStartFloatingWhenReady() {
+        final Handler handler = new Handler(Looper.getMainLooper());
+        final long[] waited = {0};
+        final long interval = 500; // ms
+        final long timeout = 20000; // 20s
+
+        Runnable check = new Runnable() {
+            @Override public void run() {
+                try {
+                    if (injectionFailed) {
+                        hideLoadingSpinner();
+                        if (startButton != null) startButton.setEnabled(true);
+                        android.widget.Toast.makeText(MainActivity.this, "Preparation failed", android.widget.Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    if (selectedTargetPackage != null && isTargetInForeground(selectedTargetPackage) && injectionReady) {
+                        // Start overlay service only now
+                        try {
+                            Intent svc = new Intent(MainActivity.this, Floating.class);
+                            startService(svc);
+                            isServiceRunning = true;
+                            updateServiceStatus();
+                            android.widget.Toast.makeText(MainActivity.this, "Service started", android.widget.Toast.LENGTH_SHORT).show();
+                        } catch (Exception se) {
+                            Log.e(TAG, "Failed to start Floating service", se);
+                        }
+                        hideLoadingSpinner();
+                        if (stopButton != null) stopButton.setEnabled(true);
+                        return;
+                    }
+
+                    // Continue polling until timeout
+                    waited[0] += interval;
+                    if (waited[0] < timeout) {
+                        handler.postDelayed(this, interval);
+                    } else {
+                        Log.w(TAG, "Timeout waiting for target foreground/injection ready");
+                        hideLoadingSpinner();
+                        if (startButton != null) startButton.setEnabled(true);
+                        android.widget.Toast.makeText(MainActivity.this, "Unable to start safely", android.widget.Toast.LENGTH_SHORT).show();
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Polling error", e);
+                    hideLoadingSpinner();
+                    if (startButton != null) startButton.setEnabled(true);
+                }
+            }
+        };
+        handler.postDelayed(check, interval);
+    }
+
+    /**
+     * Check if the target package is currently in foreground.
+     */
+    private boolean isTargetInForeground(String pkg) {
+        try {
+            ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+            if (am == null) return false;
+            for (ActivityManager.RunningAppProcessInfo info : am.getRunningAppProcesses()) {
+                if (info != null && info.processName != null && info.processName.equals(pkg)) {
+                    return info.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+                            || info.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE;
+                }
+            }
+        } catch (Exception ignored) { }
+        return false;
+    }
+
+    private android.app.AlertDialog loadingDialog;
+
+    private void showLoadingSpinner(String message) {
+        try {
+            if (loadingDialog != null && loadingDialog.isShowing()) return;
+            android.widget.ProgressBar progressBar = new android.widget.ProgressBar(this);
+            progressBar.setIndeterminate(true);
+            loadingDialog = new android.app.AlertDialog.Builder(this)
+                    .setTitle("Please wait")
+                    .setMessage(message)
+                    .setView(progressBar)
+                    .setCancelable(false)
+                    .create();
+            loadingDialog.show();
+        } catch (Exception e) {
+            Log.w(TAG, "Unable to show loading spinner", e);
+        }
+    }
+
+    private void updateLoadingMessage(String msg) {
+        try {
+            if (loadingDialog != null && loadingDialog.isShowing()) {
+                loadingDialog.setMessage(msg);
+            }
+        } catch (Exception ignored) { }
+    }
+
+    private void hideLoadingSpinner() {
+        try {
+            if (loadingDialog != null && loadingDialog.isShowing()) {
+                loadingDialog.dismiss();
+            }
+        } catch (Exception ignored) { }
+    }
+
+    /**
+     * Stop the floating mod service and update UI state
      */
     private void stopModService() {
-        if (!isServiceRunning) {
-            Log.d(TAG, "Service not running");
-            return;
-        }
-
         try {
-            Log.d(TAG, "Stopping mod service...");
-
-            // Stop the floating service
-            Intent serviceIntent = new Intent(this, com.bearmod.Floating.class);
-            stopService(serviceIntent);
-
+            stopService(new Intent(this, Floating.class));
             isServiceRunning = false;
             updateServiceStatus();
-
-            android.widget.Toast.makeText(this, "Mod service stopped", android.widget.Toast.LENGTH_SHORT).show();
-            Log.d(TAG, "Mod service stopped");
-
+            if (startButton != null) startButton.setEnabled(true);
+            if (stopButton != null) stopButton.setEnabled(false);
+            android.widget.Toast.makeText(this, "Service stopped", android.widget.Toast.LENGTH_SHORT).show();
+            // Optional auto-clear per user setting
+            if (isAutoClearEnabled()) {
+                secureExit(false);
+            }
         } catch (Exception e) {
-            Log.e(TAG, "Error stopping mod service", e);
-            android.widget.Toast.makeText(this, "Error stopping service: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show();
+            Log.e(TAG, "stopModService failed", e);
         }
     }
 
+    /**
+     * Update UI to reflect current service running state
+     */
     @SuppressLint("SetTextI18n")
     private void updateServiceStatus() {
-        if (serviceStatus != null) {
-            if (isServiceRunning) {
-                serviceStatus.setText("Service Status: Running");
-                serviceStatus.setTextColor(ContextCompat.getColor(this, android.R.color.holo_green_light));
-                startButton.setEnabled(false);
-                stopButton.setEnabled(true);
-            } else {
-                serviceStatus.setText("Service Status: Stopped");
-                serviceStatus.setTextColor(ContextCompat.getColor(this, android.R.color.holo_orange_light));
-                startButton.setEnabled(true);
-                stopButton.setEnabled(false);
+        try {
+            if (serviceStatus != null) {
+                serviceStatus.setText(isServiceRunning ? "Service: Running" : "Service: Stopped");
             }
+            if (startButton != null) startButton.setEnabled(!isServiceRunning);
+            if (stopButton != null) stopButton.setEnabled(isServiceRunning);
+        } catch (Exception e) {
+            Log.w(TAG, "updateServiceStatus error", e);
         }
     }
 
-    private void triggerAutoPatch() {
-        // Trigger auto-patch functionality
-        Log.d(TAG, "Triggering auto-patch");
-        // Implementation depends on AutoPatchManager
+    @Override
+    public void onBackPressed() {
+        // Respect auto-clear toggle on back
+        if (isAutoClearEnabled()) {
+            secureExit(true);
+        } else {
+            try { stopService(new Intent(this, Floating.class)); } catch (Exception ignored) {}
+            finish();
+        }
+    }
+
+    private void secureExit(boolean fromBack) {
+        try {
+            showLoadingSpinner("Cleaning up...");
+            DataClearingManager.getInstance(this).performComprehensiveCleanup(new DataClearingManager.CleanupListener() {
+                @Override public void onCleanupStarted() { updateLoadingMessage("Cleaning up..."); }
+                @Override public void onCleanupProgress(int p, String task) { updateLoadingMessage(task + " (" + p + "%)"); }
+                @Override public void onCleanupCompleted(boolean success) {
+                    hideLoadingSpinner();
+                    // Finish app completely
+                    try { stopService(new Intent(MainActivity.this, Floating.class)); } catch (Exception ignored) {}
+                    finishAffinity();
+                    android.os.Process.killProcess(android.os.Process.myPid());
+                    System.exit(0);
+                }
+                @Override public void onCleanupFailed(String error) {
+                    hideLoadingSpinner();
+                    Log.e(TAG, "Cleanup failed: " + error);
+                    finish();
+                }
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "secureExit error", e);
+            finish();
+        }
     }
 
     /**
