@@ -63,16 +63,14 @@ android {
     }
 
 
-    // APK Signing Configuration (supports local dev and CI via env vars)
+    // APK Signing Configuration (single path via ANDROID_* env vars; BEARMOD_* fallback for local)
     signingConfigs {
         create("release") {
             // Priority for keystore path:
-            // 1) RELEASE_KEYSTORE_PATH (decoded in CI from RELEASE_KEYSTORE_B64)
-            // 2) ANDROID_KEYSTORE (provided by CI workflow)
-            // 3) BEARMOD_KEYSTORE_PATH or Gradle property
-            // 4) project root: release.keystore (if created locally)
-            val keystorePath = System.getenv("RELEASE_KEYSTORE_PATH")
-                ?: System.getenv("ANDROID_KEYSTORE")
+            // 1) ANDROID_KEYSTORE (CI/local env)
+            // 2) BEARMOD_KEYSTORE_PATH or Gradle property (local fallback)
+            // 3) project root: release.keystore (if created locally)
+            val keystorePath = System.getenv("ANDROID_KEYSTORE")
                 ?: System.getenv("BEARMOD_KEYSTORE_PATH")
                 ?: (project.findProperty("BEARMOD_KEYSTORE_PATH") as String?)
                 ?: file("release.keystore").absolutePath
@@ -80,19 +78,16 @@ android {
             val ks = file(keystorePath)
             if (ks.exists()) {
                 storeFile = ks
-                // Password sources (priority): RELEASE_* -> ANDROID_* -> BEARMOD_* -> Gradle props
-                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
-                    ?: System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                // Password sources (priority): ANDROID_* -> BEARMOD_* -> Gradle props
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
                     ?: System.getenv("BEARMOD_KEYSTORE_PASSWORD")
-                    ?: project.findProperty("RELEASE_KEYSTORE_PASSWORD") as String?
-                keyAlias = System.getenv("RELEASE_KEY_ALIAS")
-                    ?: System.getenv("ANDROID_KEY_ALIAS")
+                    ?: project.findProperty("BEARMOD_KEYSTORE_PASSWORD") as String?
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
                     ?: System.getenv("BEARMOD_KEY_ALIAS")
-                    ?: project.findProperty("RELEASE_KEY_ALIAS") as String?
-                keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
-                    ?: System.getenv("ANDROID_KEY_ALIAS_PASSWORD")
+                    ?: project.findProperty("BEARMOD_KEY_ALIAS") as String?
+                keyPassword = System.getenv("ANDROID_KEY_ALIAS_PASSWORD")
                     ?: System.getenv("BEARMOD_KEY_PASSWORD")
-                    ?: project.findProperty("RELEASE_KEY_PASSWORD") as String?
+                    ?: project.findProperty("BEARMOD_KEY_PASSWORD") as String?
 
                 // Enable signature schemes
                 enableV1Signing = true
@@ -103,7 +98,7 @@ android {
                 println("✅ Release signing configured with keystore: ${ks.absolutePath}")
             } else {
                 println("⚠️  Keystore not found at: ${ks.absolutePath}")
-                println("   Release builds will be unsigned unless CI injects signing via -Pandroid.injected.signing.* or env.")
+                println("   Release builds will be unsigned unless ANDROID_* env vars are provided in CI/local.")
             }
         }
 
