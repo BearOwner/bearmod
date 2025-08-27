@@ -1,11 +1,11 @@
-#include "Bypass/Helper/StrEnc.h"
-#include "Bypass/Helper/struct.h"
-#include "Bypass/Helper/Includes.h"
+#include "BYPASS/Helper/StrEnc.h"
+#include "BYPASS/Helper/struct.h"
+#include "BYPASS/Helper/Includes.h"
 
-#include "Bypass/Helper/obfuscate.h"
+#include "BYPASS/Helper/obfuscate.h"
 
 #include "Tools.h"
-#include "Bypass/Helper/json.hpp"
+#include "BYPASS/Helper/json.hpp"
 #include "base64/base64.h"
 #include "md5.h"
 #include "BYPASS/Substrate/enc.h"
@@ -13,7 +13,7 @@
 #include "Engine/Vector2.hpp"
 #include "Engine/Vector3.hpp"
 #include "Engine/Rect.h"
-#include "Bypass/KittyMemory/MemoryPatch.h"
+#include "BYPASS/KittyMemory/MemoryPatch.h"
 
 #include "TEAMNRG/Utils.h"
 
