@@ -47,11 +47,13 @@ jobs:
             "cmake;3.22.1" \
             "ndk;27.1.12297006"
 
-      # Explicit build for Android project (skip JNI validation to avoid Python dependency)
-      - name: Build (explicit for CodeQL)
+      # Build Android app and native code so CodeQL can extract Java and C/C++
+      - name: Build (assemble debug with native)
         run: |
           chmod +x ./gradlew
-          ./gradlew :app:assembleDebug --stacktrace --no-daemon
+          ./gradlew :app:assembleDebug -PenableNativeBuild=true --stacktrace --no-daemon
+          # Ensure native build artifacts exist for extraction
+          ./gradlew :app:externalNativeBuildDebug -PenableNativeBuild=true --stacktrace --no-daemon
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
