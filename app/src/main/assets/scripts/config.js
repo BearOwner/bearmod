@@ -84,7 +84,6 @@ const config = {
         // Obfuscation settings
         obfuscation: {
             enabled: true,
-            libraryName: "libhelper.so",  // Obfuscated gadget name
             hideFromPs: true,             // Hide from process lists
             hideFromMaps: true,           // Hide from memory maps
             spoofProcessName: "media_server", // Spoof process name
@@ -103,10 +102,10 @@ const config = {
 
         // KeyAuth integration for non-root
         keyAuth: {
-            validateBeforeInjection: true,  // Validate license before injection
-            bearTokenRequired: true,        // Require BearToken
+            validateBeforeInjection: true,  // Validate session before injection
+            sessionTokenRequired: true,     // Require KeyAuth session token
             licenseLevel: "premium",        // basic, premium, enterprise
-            checkInterval: 300000,          // License check interval (5 minutes)
+            checkInterval: 300000,          // Session check interval (5 minutes)
             offlineGracePeriod: 3600000    // Offline grace period (1 hour)
         },
 

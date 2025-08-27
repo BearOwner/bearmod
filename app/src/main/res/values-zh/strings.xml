@@ -20,4 +20,5 @@
     <string name="remember_key">Remember Key</string>
     <string name="enter_license_key">Enter license key</string>
     <string name="login_to_continue">LOGIN TO CONTINUE</string>
+    <string name="copy_paste_license_key">Copy/Paste License Key</string>
 </resources>

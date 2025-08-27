@@ -47,28 +47,11 @@ extern "C" {
 // NativeLib JNI implementations (static methods)
 JNIEXPORT void JNICALL Java_com_bearmod_bridge_NativeLib_initialize(JNIEnv* env, jclass clazz, jobject context) {
     (void)clazz; (void)context;
-    __android_log_print(ANDROID_LOG_INFO, "BearMod", "NativeLib.initialize called - registering natives in Java context");
+    __android_log_print(ANDROID_LOG_INFO, "BearMod", "NativeLib.initialize called - minimal registration");
 
     int failures = 0;
 
-    if (RegisterFloatingNatives(env) != 0) {
-        __android_log_print(ANDROID_LOG_ERROR, "BearMod", "initialize: Failed to register Floating natives (will continue)");
-        if (env->ExceptionCheck()) env->ExceptionClear();
-        failures++;
-    }
-    if (RegisterLoginActivityNatives(env) != 0) {
-        __android_log_print(ANDROID_LOG_ERROR, "BearMod", "initialize: Failed to register LoginActivity natives (will continue)");
-        if (env->ExceptionCheck()) env->ExceptionClear();
-        failures++;
-    }
-    if (RegisterSimpleLicenseVerifierNatives(env) != 0) {
-        __android_log_print(ANDROID_LOG_WARN, "BearMod", "initialize: SimpleLicenseVerifier natives not registered (optional)");
-        if (env->ExceptionCheck()) env->ExceptionClear();
-    }
-    if (RegisterNonRootPatchManagerNatives(env) != 0) {
-        __android_log_print(ANDROID_LOG_WARN, "BearMod", "initialize: NonRootPatchManager natives not registered (optional)");
-        if (env->ExceptionCheck()) env->ExceptionClear();
-    }
+    // Only ensure NativeLib natives are registered here; other classes should be registered via registerNatives(Class, ...)
     if (RegisterNativeLibNatives(env) != 0) {
         __android_log_print(ANDROID_LOG_ERROR, "BearMod", "initialize: Failed to register NativeLib natives (will continue)");
         if (env->ExceptionCheck()) env->ExceptionClear();
@@ -77,6 +60,58 @@ JNIEXPORT void JNICALL Java_com_bearmod_bridge_NativeLib_initialize(JNIEnv* env,
 
     __android_log_print(ANDROID_LOG_INFO, "BearMod", "NativeLib.initialize completed with %d failure(s)", failures);
 }
+
+
+/* move Bypass.cpp
+// New: Register natives for classes provided by Java to avoid FindClass string lookups
+JNIEXPORT void JNICALL Java_com_bearmod_bridge_NativeLib_registerNatives(JNIEnv* env, jclass, jclass floatingCls, jclass loginActivityCls, jclass nativeLibCls) {
+    int failures = 0;
+
+    if (floatingCls != nullptr) {
+        JNINativeMethod methods[] = {
+            {"onlinename", "()Ljava/lang/String;", (void *) Java_com_bearmod_Floating_onlinename},
+            {"channellink", "()Ljava/lang/String;", (void *) Java_com_bearmod_Floating_channellink},
+            {"feedbacklink", "()Ljava/lang/String;", (void *) Java_com_bearmod_Floating_feedbacklink},
+            {"cfg", "()Ljava/lang/String;", (void *) Java_com_bearmod_Floating_cfg},
+            {"iconenc", "()Ljava/lang/String;", (void *) Java_com_bearmod_Floating_iconenc},
+            {"Switch", "(I)V", (void *) Java_com_bearmod_Floating_Switch},
+            {"IsESPActive", "()Z", (void *) Java_com_bearmod_Floating_IsESPActive},
+            {"DrawOn", "(Lcom/bearmod/ESPView;Landroid/graphics/Canvas;)V", (void *) Java_com_bearmod_Floating_DrawOn},
+            {"IsHideEsp", "()Z", (void *) Java_com_bearmod_Floating_IsHideEsp},
+            {"onSendConfig", "(Ljava/lang/String;Ljava/lang/String;)V", (void *) Java_com_bearmod_Floating_onSendConfig}
+        };
+        if (env->RegisterNatives(floatingCls, methods, sizeof(methods)/sizeof(methods[0])) != 0) {
+            LogJNIError(env, "registerNatives", "Failed to register Floating natives on provided class");
+            if (env->ExceptionCheck()) env->ExceptionClear();
+            failures++;
+        }
+    }
+
+    if (loginActivityCls != nullptr) {
+        JNINativeMethod methods[] = {
+            {"updateAuthenticationState", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)V", (void *) Java_com_bearmod_activity_LoginActivity_updateAuthenticationState}
+        };
+        if (env->RegisterNatives(loginActivityCls, methods, sizeof(methods)/sizeof(methods[0])) != 0) {
+            LogJNIError(env, "registerNatives", "Failed to register LoginActivity natives on provided class");
+            if (env->ExceptionCheck()) env->ExceptionClear();
+            failures++;
+        }
+    }
+
+    if (nativeLibCls != nullptr) {
+        JNINativeMethod methods[] = {
+            {"initialize", "(Landroid/content/Context;)V", (void*) Java_com_bearmod_bridge_NativeLib_initialize},
+        };
+        if (env->RegisterNatives(nativeLibCls, methods, sizeof(methods)/sizeof(methods[0])) != 0) {
+            LogJNIError(env, "registerNatives", "Failed to register NativeLib natives on provided class");
+            if (env->ExceptionCheck()) env->ExceptionClear();
+            failures++;
+        }
+    }
+
+    __android_log_print(ANDROID_LOG_INFO, "BearMod", "NativeLib.registerNatives completed with %d failure(s)", failures);
+}
+*/
 
 // Removed all NativeLib auth-related JNI implementations to avoid duplication with SimpleLicenseVerifier path
 }
@@ -172,16 +207,6 @@ Java_com_bearmod_Floating_feedbacklink(JNIEnv *env, jobject activityObject) {
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_bearmod_Floating_ChannelName(JNIEnv *env, jobject activityObject) {
-    return env->NewStringUTF(OBFUSCATE("JOIN OFFICIAL CHANNEL"));
-}
-
-extern "C" JNIEXPORT jstring JNICALL
-Java_com_bearmod_Floating_FeedBackName(JNIEnv *env, jobject activityObject) {
-    return env->NewStringUTF(OBFUSCATE("FeedBack"));
-}
-
-extern "C" JNIEXPORT jstring JNICALL
 Java_com_bearmod_Floating_cfg(JNIEnv *env, jobject activityObject) {
     return env->NewStringUTF(OBFUSCATE("NRG_SaveFile.cfg"));
 }
@@ -189,11 +214,12 @@ Java_com_bearmod_Floating_cfg(JNIEnv *env, jobject activityObject) {
 // Note: iconenc, Switch, IsESPActive, DrawOn, and LoginActivity_Init are already implemented in other files
 // Only implementing the missing ones:
 
-extern "C" JNIEXPORT jboolean JNICALL
-Java_com_bearmod_Floating_IsHideEsp(JNIEnv *env, jobject thiz) {
+//move Bypass.cpp
+//extern "C" JNIEXPORT jboolean JNICALL
+//Java_com_bearmod_Floating_IsHideEsp(JNIEnv *env, jobject thiz) {
     // Simple implementation - can be enhanced
-    return JNI_FALSE;
-}
+   // return JNI_FALSE;
+//}
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_bearmod_Floating_onSendConfig(JNIEnv *env, jobject thiz, jstring s, jstring v) {
@@ -279,11 +305,9 @@ Java_com_bearmod_patch_NonRootPatchManager_injection(JNIEnv *env, jobject thiz) 
 
 int RegisterFloatingNatives(JNIEnv *env) {
     JNINativeMethod methods[] = {
-        {"onlinename", "()Ljava/lang/String;", (void *) Java_com_bearmod_Floating_onlinename},
+       {"onlinename", "()Ljava/lang/String;", (void *) Java_com_bearmod_Floating_onlinename},
         {"channellink", "()Ljava/lang/String;", (void *) Java_com_bearmod_Floating_channellink},
         {"feedbacklink", "()Ljava/lang/String;", (void *) Java_com_bearmod_Floating_feedbacklink},
-        {"ChannelName", "()Ljava/lang/String;", (void *) Java_com_bearmod_Floating_ChannelName},
-        {"FeedBackName", "()Ljava/lang/String;", (void *) Java_com_bearmod_Floating_FeedBackName},
         {"cfg", "()Ljava/lang/String;", (void *) Java_com_bearmod_Floating_cfg},
         {"iconenc", "()Ljava/lang/String;", (void *) Java_com_bearmod_Floating_iconenc},
         {"Switch", "(I)V", (void *) Java_com_bearmod_Floating_Switch},
@@ -375,7 +399,7 @@ int RegisterNonRootPatchManagerNatives(JNIEnv *env) {
 // ========================================
 // JNI OnLoad/OnUnload Implementation
 // ========================================
-
+/* move Bypass.cpp
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
     JNIEnv *env;
     if (vm->GetEnv((void **) &env, JNI_VERSION_1_6) != JNI_OK) {
@@ -434,3 +458,4 @@ JNIEXPORT void JNICALL JNI_OnUnload(JavaVM *vm, void *reserved) {
     // Cleanup any resources here
     // Note: JNI_OnUnload is rarely called in Android, so don't rely on it for cleanup
 }
+*/

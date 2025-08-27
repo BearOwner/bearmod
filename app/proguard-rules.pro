@@ -21,22 +21,49 @@
 #-renamesourcefileattribute SourceFile
 
 ##############################################
-# ✅ Keep classes directly used in JNI (FindClass)
+# ✅ Obfuscation dictionaries (stealth/randomized names)
+# These files live under the app module at app/obf/
 ##############################################
--keep class com.bearmod.Floating { *; }
+-obfuscationdictionary obf/class_dict.txt
+-classobfuscationdictionary obf/class_dict.txt
+-packageobfuscationdictionary obf/package_dict.txt
+
+##############################################
+# ✅ Reproducible mapping controls
+# -printmapping: persist obfuscation map for crash deobfuscation and reuse
+# -applymapping: keep prior obfuscated names stable across patch/minor builds
+##############################################
+-printmapping obf/mapping-current.txt
+# For patch/minor builds based on previous release, uncomment and point to the
+# archived mapping of that release (do NOT ship this file in artifacts):
+# -applymapping obf/mapping-<version>.txt
+
+##############################################
+# ✅ Keep minimal classes needed for startup/bootstrap
+##############################################
+# Keep BearMod core auth and JNI bridge classes where reflection/JNI is used
 -keep class com.bearmod.activity.LoginActivity { *; }
+-keep class com.bearmod.Floating { *; }
+-keep class com.bearmod.bridge.NativeLib { *; }
 -keep class com.bearmod.activity.MainActivity { *; }
 -keep class com.bearmod.activity.SplashActivity { *; }
 
-# Keep auth classes referenced via reflection/JNI
--keep class com.bearmod.auth.SimpleLicenseVerifier { *; }
-# If other auth helpers exist, keep the whole package (safe option)
--keep class com.bearmod.auth.** { *; }
+# Keep lightweight string obfuscator and logging wrapper
+-keep class com.bearmod.util.StrObf { *; }
+-keep class com.bearmod.util.Logx { *; }
 
-# Keep plugin/manager classes referenced by native RegisterNatives/FindClass
--keep class com.bearmod.plugin.NonRootManager { *; }
--keep class com.bearmod.patch.NonRootPatchManager { *; }
--keep class com.bearmod.loader.security.NativeSecurityManager { *; }
+# Preserve OkHttp and retrofit models (if any)
+-dontwarn okhttp3.**
+-keep class okhttp3.** { *; }
+
+# Stealth: do NOT keep auth/security/injection packages so R8 can obfuscate/rename/elide them
+# (If any of these classes must expose native methods at runtime, we will pass Class objects from Java
+#  and register by jclass to avoid FindClass on string names.)
+
+##############################################
+# ✅ Keep classes referenced in JNI method signatures
+##############################################
+-keep class com.bearmod.ESPView { *; }
 
 ##############################################
 # ✅ Keep all native methods (do not obfuscate their names/signatures)

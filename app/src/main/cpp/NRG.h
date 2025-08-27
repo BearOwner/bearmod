@@ -1,22 +1,23 @@
-#include "Helper/StrEnc.h"
-#include "Helper/struct.h"
-#include "Helper/Includes.h"
+#include "Bypass/Helper/StrEnc.h"
+#include "Bypass/Helper/struct.h"
+#include "Bypass/Helper/Includes.h"
 
-#include "Helper/obfuscate.h"
+#include "Bypass/Helper/obfuscate.h"
 
 #include "Tools.h"
-#include "Helper/json.hpp"
+#include "Bypass/Helper/json.hpp"
 #include "base64/base64.h"
 #include "md5.h"
-#include "enc.h"
+#include "BYPASS/Substrate/enc.h"
 
 #include "Engine/Vector2.hpp"
 #include "Engine/Vector3.hpp"
 #include "Engine/Rect.h"
-#include "KittyMemory/MemoryPatch.h"
+#include "Bypass/KittyMemory/MemoryPatch.h"
 
 #include "TEAMNRG/Utils.h"
-//#include "TEAMNRG/Macros.h"
+
+
 #include "ESP.h"
 #include "timer.h"
 #include "all_items_data.h"
@@ -25,6 +26,7 @@
 ESP espOverlay;
 using json = nlohmann::json;
 json items_data;
+//JSON_ITEMS222;//test
 //using json = nlohmann::ordered_json;
 
 using namespace std;
@@ -64,19 +66,28 @@ uintptr_t UE4 = 0, anogs, gcloud;
 time_t rng = 0;
 static int a = 0;
 
-//static std::string EXP = " ";
+
 std::string g_Token, g_Auth;
 bool bValid = false, xEnv = false;
 bool check;
-//bool isModEnabled;
+// Authentication check function for mod logic
+inline bool isModEnabled() {
+    // KeyAuth authentication check: bValid must be true and both token and session must be present
+    return bValid && !g_Token.empty() && !g_Auth.empty();
+}
+
+std::map<int, bool> itemConfig;
+json itemData;
+//json JSON_ITEMS222;
+
 
 
 // Authentication check function for mod logic
-bool isModEnabled() {
+//bool isModEnabled() {
     // KeyAuth authentication check: bValid must be true and both token and session must be present
     // Note: g_Token and g_Auth are different values (token vs session ID) in KeyAuth flow
-    return bValid && !g_Token.empty() && !g_Auth.empty();
-}
+  //  return bValid && !g_Token.empty() && !g_Auth.empty();
+//}
 /*
 #ifdef DEBUG
 // Unit test for authentication gating
@@ -86,8 +97,8 @@ inline void test_isModEnabled() {
 #endif
 */
 
-std::map<int, bool> itemConfig;
-json itemData;
+
+
 
 
 // Business logic handler for onSendConfig moved out of Main.cpp
