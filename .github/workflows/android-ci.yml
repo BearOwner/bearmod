@@ -149,12 +149,23 @@ jobs:
           mkdir -p $HOME/.android
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > $HOME/.android/release.jks
 
+      - name: (Optional) Decode release keystore via RELEASE_KEYSTORE_B64
+        if: ${{ secrets.RELEASE_KEYSTORE_B64 != '' }}
+        env:
+          RELEASE_KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_B64 }}
+        run: |
+          echo "$RELEASE_KEYSTORE_B64" | base64 -d > release.keystore
+          echo "RELEASE_KEYSTORE_PATH=$PWD/release.keystore" >> $GITHUB_ENV
+
       - name: Assemble Release (with signing)
         env:
           ANDROID_KEYSTORE: ${{ runner.temp }}/release.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_ALIAS_PASSWORD: ${{ secrets.ANDROID_KEY_ALIAS_PASSWORD }}
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
           # Use keystore from HOME to avoid path spaces issues
           cp $HOME/.android/release.jks $ANDROID_KEYSTORE
