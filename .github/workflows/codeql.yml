@@ -51,7 +51,7 @@ jobs:
       - name: Build (explicit for CodeQL)
         run: |
           chmod +x ./gradlew
-          ./gradlew :app:assembleDebug --stacktrace --no-daemon -x validateJNI
+          ./gradlew :app:assembleDebug --stacktrace --no-daemon
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
