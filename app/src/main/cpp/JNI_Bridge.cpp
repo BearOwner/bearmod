@@ -1,6 +1,7 @@
 #include "JNI_Bridge.h"
 #include "Helper/Includes.h"
 #include <string>
+#include <jni.h>
 
 // #include "nonroot/frida_gadget_manager.h"  // Commented out due to missing dependencies
 
@@ -16,6 +17,9 @@ extern "C" void HandleOnSendConfig_Bridge(const char* key, const char* value);
 extern std::string g_Auth;
 extern std::string g_Token;
 extern bool bValid;
+
+// Forward declaration for BearMod JNI initialization (implemented in BYPASS/bearmod_jni.cpp)
+extern bool initializeBearModJNI(JavaVM* vm, JNIEnv* env);
 
 // --------------------------------------------------------
 // Forward declarations for NativeLib JNI functions (static)
@@ -399,7 +403,7 @@ int RegisterNonRootPatchManagerNatives(JNIEnv *env) {
 // ========================================
 // JNI OnLoad/OnUnload Implementation
 // ========================================
-/* move Bypass.cpp
+
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
     JNIEnv *env;
     if (vm->GetEnv((void **) &env, JNI_VERSION_1_6) != JNI_OK) {
@@ -407,10 +411,15 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
         return -1;
     }
 
+    // Initialize BearMod JNI core state (gJavaVM, etc.) implemented in bearmod_jni.cpp
+    if (!initializeBearModJNI(vm, env)) {
+        __android_log_print(ANDROID_LOG_ERROR, "BearMod", "initializeBearModJNI failed");
+        return -1;
+    }
+
     __android_log_print(ANDROID_LOG_INFO, "BearMod", "JNI_OnLoad called - registering native methods");
 
-    // Attempt to register all native methods, but do not abort load on failure.
-    // Some classes may not be visible via FindClass during JNI_OnLoad (class loader issue).
+    // Attempt to register native methods; tolerate failures due to class loader timing.
     int failures = 0;
     if (RegisterFloatingNatives(env) != 0) {
         __android_log_print(ANDROID_LOG_ERROR, "BearMod", "OnLoad: Failed to register Floating natives (will continue)");
@@ -440,22 +449,11 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
         failures++;
     }
 
-    // Start background threads (disabled here to keep JNI_OnLoad minimal and avoid undefined symbols).
-    // If needed, start threads explicitly after app initialization in Java-side Init.
-    // pthread_t t;
-    // extern void* Init_Thread(void*);
-    // extern void* maps_thread(void*);
-    // pthread_create(&t, nullptr, Init_Thread, 0);
-    // pthread_create(&t, nullptr, maps_thread, 0);
-
     __android_log_print(ANDROID_LOG_INFO, "BearMod", "JNI_OnLoad completed with %d failure(s)", failures);
     return JNI_VERSION_1_6;
 }
 
 JNIEXPORT void JNICALL JNI_OnUnload(JavaVM *vm, void *reserved) {
     __android_log_print(ANDROID_LOG_INFO, "BearMod", "JNI_OnUnload called");
-    
-    // Cleanup any resources here
-    // Note: JNI_OnUnload is rarely called in Android, so don't rely on it for cleanup
+    // Cleanup if needed (rarely called on Android)
 }
-*/

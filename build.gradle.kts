@@ -8,6 +8,9 @@ plugins {
     id("checkstyle")
 }
 
+// Apply local buildSrc plugin providing code-quality tasks
+apply(plugin = "com.bearmod.code-quality")
+
 checkstyle {
     toolVersion = "10.12.4"
     configFile = file("$rootDir/checkstyle.xml")

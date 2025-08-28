@@ -1,7 +1,5 @@
 package com.bearmod.patch.injection;
 
-import com.bearmod.injection.HybridInjectionManager;
-import com.bearmod.injection.KeyAuthInjectionManager;
 import com.bearmod.patch.model.PatchResult;
 
 /** //latter
@@ -62,145 +60,18 @@ public interface StandardInjectionCallback {
         }
         
         @Override
-        public void onInjectionStopped(String targetPackage) {
+        public void onInjectionSuccess(String targetPackage, PatchResult result) {
             // Default implementation - can be overridden
         }
-    }
-    
-    /**
-     * Adapter for HybridInjectionManager.InjectionCallback
-     */
-    class HybridInjectionAdapter extends Adapter {
-        private final HybridInjectionManager.InjectionCallback originalCallback;
-        
-        public HybridInjectionAdapter(HybridInjectionManager.InjectionCallback originalCallback) {
-            this.originalCallback = originalCallback;
-        }
-        
-        @Override
-        public void onInjectionStarted(String targetPackage) {
-            originalCallback.onInjectionStarted(targetPackage);
-        }
-        
-        @Override
-        public void onInjectionProgress(String targetPackage, int progress, String message) {
-            originalCallback.onInjectionProgress(targetPackage, progress, message);
-        }
-        
-        @Override
-        public void onInjectionSuccess(String targetPackage, PatchResult result) {
-            originalCallback.onInjectionSuccess(targetPackage, result);
-        }
         
         @Override
         public void onInjectionFailed(String targetPackage, String error) {
-            originalCallback.onInjectionFailed(targetPackage, error);
+            // Default implementation - can be overridden
         }
         
         @Override
         public void onInjectionStopped(String targetPackage) {
-            // HybridInjectionManager doesn't have onInjectionStopped, so we don't call anything
-        }
-    }
-    
-    /**
-     * Adapter for InjectionManager.InjectionCallback
-     */
-    class InjectionManagerAdapter extends Adapter {
-        private final InjectionManager.InjectionCallback originalCallback;
-        
-        public InjectionManagerAdapter(InjectionManager.InjectionCallback originalCallback) {
-            this.originalCallback = originalCallback;
-        }
-        
-        @Override
-        public void onInjectionStarted(String targetPackage) {
-            // InjectionManager doesn't have onInjectionStarted, so we don't call anything
-        }
-        
-        @Override
-        public void onInjectionProgress(String targetPackage, int progress, String message) {
-            originalCallback.onInjectionProgress(targetPackage, progress);
-        }
-        
-        @Override
-        public void onInjectionSuccess(String targetPackage, PatchResult result) {
-            // Convert PatchResult to library path (simplified)
-            String libraryPath = result != null ? result.getPatchId() : "unknown";
-            originalCallback.onInjectionSuccess(targetPackage, libraryPath);
-        }
-        
-        @Override
-        public void onInjectionFailed(String targetPackage, String error) {
-            originalCallback.onInjectionFailed(targetPackage, error);
-        }
-        
-        @Override
-        public void onInjectionStopped(String targetPackage) {
-            // InjectionManager doesn't have onInjectionStopped, so we don't call anything
-        }
-    }
-    
-    /**
-     * Adapter for KeyAuthInjectionManager.InjectionCallback
-     */
-    class KeyAuthInjectionAdapter extends Adapter {
-        private final KeyAuthInjectionManager.InjectionCallback originalCallback;
-        
-        public KeyAuthInjectionAdapter(KeyAuthInjectionManager.InjectionCallback originalCallback) {
-            this.originalCallback = originalCallback;
-        }
-        
-        @Override
-        public void onInjectionStarted(String targetPackage) {
-            originalCallback.onInjectionStarted();
-        }
-        
-        @Override
-        public void onInjectionProgress(String targetPackage, int progress, String message) {
-            originalCallback.onInjectionProgress(progress, message);
-        }
-        
-        @Override
-        public void onInjectionSuccess(String targetPackage, PatchResult result) {
-            originalCallback.onInjectionSuccess(result);
-        }
-        
-        @Override
-        public void onInjectionFailed(String targetPackage, String error) {
-            originalCallback.onInjectionFailed(error);
-        }
-        
-        @Override
-        public void onInjectionStopped(String targetPackage) {
-            // KeyAuthInjectionManager doesn't have onInjectionStopped, so we don't call anything
-        }
-    }
-    
-    /**
-     * Utility methods for creating adapters
-     */
-    class Utils {
-        
-        /**
-         * Create adapter for HybridInjectionManager callback
-         */
-        public static StandardInjectionCallback fromHybridCallback(HybridInjectionManager.InjectionCallback callback) {
-            return new HybridInjectionAdapter(callback);
-        }
-        
-        /**
-         * Create adapter for InjectionManager callback
-         */
-        public static StandardInjectionCallback fromInjectionManagerCallback(InjectionManager.InjectionCallback callback) {
-            return new InjectionManagerAdapter(callback);
-        }
-        
-        /**
-         * Create adapter for KeyAuthInjectionManager callback
-         */
-        public static StandardInjectionCallback fromKeyAuthCallback(KeyAuthInjectionManager.InjectionCallback callback) {
-            return new KeyAuthInjectionAdapter(callback);
+            // Default implementation - can be overridden
         }
     }
 }

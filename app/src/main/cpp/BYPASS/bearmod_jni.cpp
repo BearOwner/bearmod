@@ -1,4 +1,3 @@
-#include "bearmod_jni.h"
 #include "patch/obfuscate.h"
 #include "patch/Utils.h"
 #include "patch/KittyMemory.h"

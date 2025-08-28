@@ -138,6 +138,16 @@ public class SimpleLicenseVerifier {
     // Debug flag for enhanced logging
     private static final boolean DEBUG_MODE = false;
 
+    // Shared HTTP client (consistent timeouts to avoid UI watchdog timeouts)
+    private static final java.util.concurrent.TimeUnit TU = java.util.concurrent.TimeUnit.SECONDS;
+    private static final OkHttpClient HTTP_CLIENT = new OkHttpClient.Builder()
+            .connectTimeout(10, TU)
+            .writeTimeout(10, TU)
+            .readTimeout(10, TU)
+            .callTimeout(12, TU)
+            .retryOnConnectionFailure(false)
+            .build();
+
     // Security policy
     private static final int MIN_HWID_LENGTH = 20; // HWID.java currently returns 32 hex chars
     private static final long HWID_RESET_COOLDOWN_MS = 72L * 60 * 60 * 1000; // 72 hours
@@ -307,14 +317,8 @@ public class SimpleLicenseVerifier {
         // Run in background thread
         CompletableFuture.runAsync(() -> {
             try {
-                // Create HTTP client
-                OkHttpClient client = new OkHttpClient.Builder()
-                        .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-                        .writeTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-                        .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-                        .callTimeout(12, java.util.concurrent.TimeUnit.SECONDS)
-                        .retryOnConnectionFailure(false)
-                        .build();
+                // Use shared HTTP client
+                OkHttpClient client = HTTP_CLIENT;
 
                 // Step 1: Initialize KeyAuth application
                 if (initializeKeyAuth(client)) {
@@ -399,11 +403,8 @@ public class SimpleLicenseVerifier {
         // Run in background thread to avoid blocking UI
         CompletableFuture.runAsync(() -> {
             try {
-                // Create HTTP client
-                OkHttpClient client = new OkHttpClient.Builder()
-                        .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-                        .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-                        .build();
+                // Use shared HTTP client
+                OkHttpClient client = HTTP_CLIENT;
 
                 // Step 1: Initialize KeyAuth application (required before other functions) - include token/hash if we have them.
             // KeyAuth initialization (token validation disabled server-side)
@@ -602,6 +603,7 @@ public class SimpleLicenseVerifier {
                         updateCppAuthenticationState(sessionId, generatedToken, currentHwid, true);
 
                         Log.d(TAG, "Session validation successful, authentication state restored");
+                        if (DEBUG_MODE) Log.d(TAG, "Callback: onSuccess(Auto-login successful)");
                         callback.onSuccess("Auto-login successful");
                     } else {
                         String errorMsg = extractErrorMessage(responseBody);
@@ -613,6 +615,7 @@ public class SimpleLicenseVerifier {
                         // Clear C++ authentication state on failure
                         updateCppAuthenticationState("", "", "", false);
 
+                        if (DEBUG_MODE) Log.d(TAG, "Callback: onError(session invalid): " + errorMsg);
                         callback.onError("Stored session is invalid or expired: " + errorMsg);
                     }
                 } else {
@@ -624,12 +627,14 @@ public class SimpleLicenseVerifier {
                     }
                     Log.e(TAG, "Session validation failed: HTTP " + response.code());
                     Log.e(TAG, "Error response body: " + errorBody);
+                    if (DEBUG_MODE) Log.d(TAG, "Callback: onError(network check): HTTP " + response.code());
                     callback.onError("Network error: HTTP " + response.code() + " - " + errorBody);
                 }
             }
 
         } catch (Exception e) {
             Log.e(TAG, "Session validation exception", e);
+            if (DEBUG_MODE) Log.d(TAG, "Callback: onError(session exception): " + e.getMessage());
             callback.onError("Session validation error: " + e.getMessage());
         }
     }
@@ -686,18 +691,22 @@ public class SimpleLicenseVerifier {
                         isAuthenticated = true;
                         String generatedToken = generateDeviceToken(sessionId, hwid);
                         updateCppAuthenticationState(sessionId, generatedToken, hwid, true);
+                        if (DEBUG_MODE) Log.d(TAG, "Callback: onSuccess(license ok)");
                         callback.onSuccess("License verified successfully");
                     } else {
                         String errorMsg = extractErrorMessage(responseBody);
+                        if (DEBUG_MODE) Log.d(TAG, "Callback: onFailure(license failed): " + errorMsg);
                         callback.onFailure("License verification failed: " + errorMsg);
                     }
                 } else {
+                    if (DEBUG_MODE) Log.d(TAG, "Callback: onFailure(network license): HTTP " + response.code());
                     callback.onFailure("Network error: " + response.code());
                 }
             }
 
         } catch (Exception e) {
             Log.e(TAG, "License verification exception", e);
+            if (DEBUG_MODE) Log.d(TAG, "Callback: onFailure(license exception): " + e.getMessage());
             callback.onFailure("License verification error: " + e.getMessage());
         }
     }

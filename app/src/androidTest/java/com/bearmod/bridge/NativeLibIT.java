@@ -1,10 +1,10 @@
-package com.bearmod.bridge;
+package com.bearmod.security;
 
 import static org.junit.Assert.*;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import com.bearmod.util.NativeUtils;
+import com.bearmod.security.NativeLib;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -16,8 +16,9 @@ public class NativeLibIT {
     @Test
     public void getVersion_returnsNonEmpty_whenNativeLoaded() {
         // Skip if native library isn't loaded in this environment
-        Assume.assumeTrue("Native lib not loaded; skipping", NativeUtils.isNativeLoaded());
-        String v = NativeLib.getVersion();
+        Assume.assumeTrue("Native lib not loaded; skipping", NativeLib.isNativeLoaded());
+        NativeLib lib = new NativeLib();
+        String v = lib.getVersion();
         assertNotNull(v);
         assertFalse(v.trim().isEmpty());
     }
