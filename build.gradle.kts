@@ -40,9 +40,8 @@ tasks.register("ktlintCheckRelease") {
     dependsOn("ktlintCheck")
 }
 
-// Apply code quality plugin to all projects
+// Project-wide dependency alignment and quality settings
 allprojects {
-    apply(plugin = "com.bearmod.code-quality")
     // Mitigate CVE in io.netty:netty-handler by aligning all Netty modules
     // to a patched version, even when introduced transitively by tooling/tests.
     configurations.all {
