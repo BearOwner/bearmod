@@ -2,7 +2,6 @@
 
 #include "Helper/Includes.h"
 #include "NRG.h"
-#include "JNI_Bridge.h"
 
 
 // Legacy JNI functions removed. JNI entrypoints are centralized in JNI_Bridge.cpp.
@@ -32,15 +31,12 @@ extern "C" void HandleOnSendConfig_Bridge(const char* config, const char* value)
 }
 
 
-#include <iostream>
 #include <fstream>
 #include <string>
 #include <sstream>
-#include <vector>
 #include <unistd.h>
 #include <sys/mman.h>
 #include <fcntl.h>
-#include <cstring>
 uintptr_t GetLibraryBaseAddress(const std::string& lib_name) {
     std::ifstream maps_file("/proc/self/maps");
     std::string line;

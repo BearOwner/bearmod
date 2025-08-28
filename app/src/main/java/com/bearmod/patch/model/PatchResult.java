@@ -1,5 +1,7 @@
 package com.bearmod.patch.model;
 
+import androidx.annotation.NonNull;
+
 /**
  * Result of a patch operation
  */
@@ -7,6 +9,7 @@ public class PatchResult {
     private final boolean success;
     private final String message;
     private final String patchId;
+
     private final long timestamp;
     private final String targetPackage;
     
@@ -14,6 +17,7 @@ public class PatchResult {
         this.success = success;
         this.message = message;
         this.patchId = patchId;
+
         this.timestamp = System.currentTimeMillis();
         this.targetPackage = null;
     }
@@ -22,6 +26,7 @@ public class PatchResult {
         this.success = success;
         this.message = message;
         this.patchId = patchId;
+
         this.targetPackage = targetPackage;
         this.timestamp = System.currentTimeMillis();
     }
@@ -46,6 +51,7 @@ public class PatchResult {
         return targetPackage;
     }
     
+    @NonNull
     @Override
     public String toString() {
         return "PatchResult{" +

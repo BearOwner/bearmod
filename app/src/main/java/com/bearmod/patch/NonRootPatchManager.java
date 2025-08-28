@@ -3,7 +3,7 @@ package com.bearmod.patch;
 import android.content.Context;
 import android.util.Log;
 
-import com.bearmod.security.SignatureVerifier;
+//import com.bearmod.security.SignatureVerifier;
 import com.bearmod.patch.model.PatchResult;
 
 import java.io.File;

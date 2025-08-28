@@ -1,0 +1,68 @@
+name: AI Agent Architecture Check
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  ai-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      # Run in TEXT mode for PR comments
+      - name: Run AI Architecture Analysis (text)
+        id: ai-text
+        run: |
+          mkdir -p reports
+          python3 scripts/check_architecture.py \
+            --dir app/src/main/java \
+            --allowlist .ai-arch-allowlist.txt \
+            --format text > reports/ai_report.txt
+
+      # Run in JSON mode for structured artifact
+      - name: Run AI Architecture Analysis (json)
+        id: ai-json
+        run: |
+          python3 scripts/check_architecture.py \
+            --dir app/src/main/java \
+            --allowlist .ai-arch-allowlist.txt \
+            --format json > reports/ai_report.json
+
+      - name: Upload AI Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-architecture-reports
+          path: reports/
+
+      - name: Annotate PR with AI findings
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          path: reports/ai_report.txt
+
+      - name: Fail if AI agent finds critical issues
+        if: always()
+        run: |
+          if grep -qi "CRITICAL" reports/ai_report.txt; then
+            echo "Critical architecture issues found. Failing the check."
+            exit 1
+          fi
