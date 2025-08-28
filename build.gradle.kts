@@ -4,7 +4,8 @@ plugins {
     id("com.android.application") version "8.13.0-rc01" apply false
     id("com.android.library") version "8.13.0-rc01" apply false
     id("org.jetbrains.kotlin.android") version "1.9.22" apply false
-    id("checkstyle")    
+    id("org.sonarqube") version "6.3.1.5724"
+    id("checkstyle")
 }
 
 checkstyle {
@@ -37,5 +38,20 @@ tasks.register<JavaExec>("ktlintFormat") {
 
 tasks.register("ktlintCheckRelease") {
     dependsOn("ktlintCheck")
+}
+
+// Apply code quality plugin to all projects
+allprojects {
+    apply(plugin = "com.bearmod.code-quality")
+    // Mitigate CVE in io.netty:netty-handler by aligning all Netty modules
+    // to a patched version, even when introduced transitively by tooling/tests.
+    configurations.all {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "io.netty" && requested.name.startsWith("netty-")) {
+                useVersion("4.1.118.Final")
+                because("Force patched Netty due to SslHandler packet validation issue (CVE, GHSA-4g4c-8m2k-jhaw)")
+            }
+        }
+    }
 }
 
