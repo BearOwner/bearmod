@@ -3,19 +3,51 @@ import ast
 import argparse
 import json
 import sys
-from typing import List, Dict
+from typing import List, Dict, Set
+import fnmatch
 
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 
-def find_god_classes(directory: str, threshold: int = 15) -> List[Dict]:
+def load_allowlist(path: str | None) -> Set[str]:
+    patterns: Set[str] = set()
+    if not path:
+        return patterns
+    try:
+        with open(path, "r", encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                patterns.add(line)
+    except FileNotFoundError:
+        pass
+    return patterns
+
+
+def is_allowed(filepath: str, allow_patterns: Set[str]) -> bool:
+    if not allow_patterns:
+        return False
+    normalized = filepath.replace("/", os.sep).replace("\\", os.sep)
+    for pat in allow_patterns:
+        # Support both forward and back slashes and glob patterns
+        norm_pat = pat.replace("/", os.sep).replace("\\", os.sep)
+        if fnmatch.fnmatch(normalized, norm_pat):
+            return True
+    return False
+
+
+def find_god_classes(directory: str, threshold: int = 15, allow_patterns: Set[str] | None = None) -> List[Dict]:
     god_classes: List[Dict] = []
+    allow_patterns = allow_patterns or set()
     for root, _, files in os.walk(directory):
         for file in files:
             if file.endswith('.java') or file.endswith('.py'):
                 path = os.path.join(root, file)
+                if is_allowed(path, allow_patterns):
+                    continue
                 try:
                     with open(path, "r", encoding="utf-8", errors="ignore") as f:
                         source = f.read()
@@ -104,6 +136,7 @@ def main() -> int:
     parser.add_argument("--dir", dest="dir", default="app/src/main/java", help="Target directory to scan")
     parser.add_argument("--format", choices=["text", "json"], default="text", help="Output format")
     parser.add_argument("--threshold", type=int, default=15, help="Method count threshold for god classes")
+    parser.add_argument("--allowlist", type=str, default=None, help="Path to allowlist file with glob patterns to ignore from CRITICAL checks")
     parser.add_argument("--strict", action="store_true", help="Exit with non-zero if critical issues found")
     args = parser.parse_args()
 
@@ -113,7 +146,8 @@ def main() -> int:
         # Non-zero if dir missing to surface misconfiguration
         return 2
 
-    god_classes = find_god_classes(target_dir, threshold=args.threshold)
+    allow_patterns = load_allowlist(args.allowlist)
+    god_classes = find_god_classes(target_dir, threshold=args.threshold, allow_patterns=allow_patterns)
     duplicates = find_duplicate_functions(target_dir)
 
     findings = {

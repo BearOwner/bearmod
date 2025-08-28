@@ -35,6 +35,7 @@ jobs:
           mkdir -p reports
           python3 scripts/check_architecture.py \
             --dir app/src/main/java \
+            --allowlist .ai-arch-allowlist.txt \
             --format text > reports/ai_report.txt
 
       # Run in JSON mode for structured artifact
@@ -43,6 +44,7 @@ jobs:
         run: |
           python3 scripts/check_architecture.py \
             --dir app/src/main/java \
+            --allowlist .ai-arch-allowlist.txt \
             --format json > reports/ai_report.json
 
       - name: Upload AI Reports
