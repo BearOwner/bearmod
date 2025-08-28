@@ -40,6 +40,9 @@ LOCAL_CPPFLAGS := -w -std=c++17 -Wno-error=format-security -fvisibility=hidden -
 LOCAL_CFLAGS   := -Wno-error=format-security -fvisibility=hidden -ffunction-sections -fdata-sections -fno-rtti -fpermissive
 LOCAL_LDFLAGS  := -Wl,--gc-sections,--strip-all
 
+# Enable C++ exception handling for this module (required by json.hpp and NRG.h)
+LOCAL_CPP_FEATURES := exceptions
+
 # Debug vs Release
 ifeq ($(APP_OPTIM),debug)
     LOCAL_CPPFLAGS += -DDEBUG_BUILD -g -O0
