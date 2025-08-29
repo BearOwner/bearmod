@@ -1,11 +1,9 @@
 package com.bearmod.auth;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
 
-import com.bearmod.activity.LoginActivity;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -21,33 +19,98 @@ import okhttp3.Response;
 
 /**
  * SimpleLicenseVerifier
- *
+ * <p>
  * Purpose:
  * Provides client-side license verification using KeyAuth (v1.3) with a simplified flow.
  * Acts as a bridge between Java UI (e.g., {@link com.bearmod.activity.LoginActivity}) and
  * native BearMod authentication state (updated via the JNI bridge).
- *
+ * <p>
  * Responsibilities:
  * - Stores and validates session and license tokens with resilience across reinstalls.
  * - Interacts with KeyAuth using OkHttp, handling init, session check, and license verify.
  * - Updates native authentication state via JNI bridge utilities after successful auth.
  * - Exposes results to Java UI and other components.
- *
+ * <p>
  * Lifecycle:
  * - Invoked during user login for license verification.
  * - Can be re-validated on app resume to ensure session integrity.
  * - Clears state on logout and propagates changes to native layer.
- *
+ * <p>
  * JNI Bindings:
  * - native String {@link #ID()} — instance method registered in JNI (see JNI_Bridge.h/cpp).
  *   Used by native code to fetch an identifier string when needed.
- *
+ * <p>
  * Notes:
  * - Keep network and persistence logic here; keep JNI implementations minimal and stable.
  * - When adding new JNI hooks, update Javadoc and ensure validator coverage in CI.
  */
 public class SimpleLicenseVerifier {
     private static final String TAG = "SimpleLicenseVerifier";
+
+    // Phase 1 string hardening: short randomized pref names/keys via lightweight decoder
+    private static final int OBF_SALT = 413;
+    private static String PREFS_MAIN() { return com.bearmod.util.StrObf.d(new int[]{498,399}, OBF_SALT); } // "o3"
+    private static String PREFS_DEVICE() { return com.bearmod.util.StrObf.d(new int[]{498,392}, OBF_SALT); } // "o4"
+    private static String K_SESSION() { return com.bearmod.util.StrObf.d(new int[]{493,397}, OBF_SALT); } // "p1"
+    private static String K_TOKEN() { return com.bearmod.util.StrObf.d(new int[]{493,398}, OBF_SALT); }   // "p2"
+    private static String K_EXP() { return com.bearmod.util.StrObf.d(new int[]{493,399}, OBF_SALT); }      // "p3"
+    private static String K_HWID() { return com.bearmod.util.StrObf.d(new int[]{493,392}, OBF_SALT); }     // "p4"
+    private static String K_T_STATUS() { return com.bearmod.util.StrObf.d(new int[]{493,393}, OBF_SALT); } // "p5"
+    private static String K_T_BANNED() { return com.bearmod.util.StrObf.d(new int[]{493,394}, OBF_SALT); } // "p6"
+    private static String K_T_LAST() { return com.bearmod.util.StrObf.d(new int[]{493,395}, OBF_SALT); }   // "p7"
+    private static String K_ATS() { return com.bearmod.util.StrObf.d(new int[]{494,396}, OBF_SALT); }       // "p8" auth timestamp
+    // UI prefs
+    private static String K_LIC_SAVED() { return com.bearmod.util.StrObf.d(new int[]{494,398}, OBF_SALT); } // "p9" saved license key
+    private static String K_REMEMBER() { return com.bearmod.util.StrObf.d(new int[]{494,399}, OBF_SALT); }  // "p10" remember key flag
+    private static String K_AUTOLOGIN() { return com.bearmod.util.StrObf.d(new int[]{495,392}, OBF_SALT); } // "p11" auto login flag
+    // Device prefs
+    private static String K_HWID_LAST_RESET() { return com.bearmod.util.StrObf.d(new int[]{495,393}, OBF_SALT); } // "d1"
+    private static String K_CACHED_HWID() { return com.bearmod.util.StrObf.d(new int[]{495,394}, OBF_SALT); }      // "d2"
+
+    // One-time migration from legacy names if present
+    private static void migrateLegacyPrefs(Context context) {
+        try {
+            SharedPreferences legacy = context.getSharedPreferences("keyauth_data", Context.MODE_PRIVATE);
+            if (!legacy.getAll().isEmpty()) {
+                SharedPreferences prefs = context.getSharedPreferences(PREFS_MAIN(), Context.MODE_PRIVATE);
+                SharedPreferences.Editor e = prefs.edit();
+                if (!prefs.contains(K_SESSION())) {
+                    String v = legacy.getString("session_id", null); if (v != null) e.putString(K_SESSION(), v);
+                }
+                if (!prefs.contains(K_EXP())) {
+                    String v = legacy.getString("user_expiration", null); if (v != null) e.putString(K_EXP(), v);
+                }
+                if (!prefs.contains(K_TOKEN())) {
+                    String v = legacy.getString("auth_token", null); if (v != null) e.putString(K_TOKEN(), v);
+                }
+                if (!prefs.contains(K_HWID())) {
+                    String v = legacy.getString("hwid", null); if (v != null) e.putString(K_HWID(), v);
+                }
+                if (!prefs.contains(K_T_STATUS())) {
+                    String v = legacy.getString("token_status", null); if (v != null) e.putString(K_T_STATUS(), v);
+                }
+                if (!prefs.contains(K_T_BANNED())) {
+                    boolean v = legacy.getBoolean("token_banned", false); e.putBoolean(K_T_BANNED(), v);
+                }
+                if (!prefs.contains(K_T_LAST())) {
+                    long v = legacy.getLong("token_last_validated", 0L); if (v != 0L) e.putLong(K_T_LAST(), v);
+                }
+                // UI legacy migrations
+                if (!prefs.contains(K_LIC_SAVED())) {
+                    String v = legacy.getString("saved_license", null); if (v != null) e.putString(K_LIC_SAVED(), v);
+                }
+                if (!prefs.contains(K_REMEMBER())) {
+                    boolean v = legacy.getBoolean("remember_key", false); e.putBoolean(K_REMEMBER(), v);
+                }
+                if (!prefs.contains(K_AUTOLOGIN())) {
+                    boolean v = legacy.getBoolean("auto_login_enabled", false); e.putBoolean(K_AUTOLOGIN(), v);
+                }
+                e.apply();
+                // Optionally clear legacy after migration
+                // legacy.edit().clear().apply();
+            }
+        } catch (Throwable ignored) {}
+    }
 
     // JNI: Instance native method required by JNI registration
     // Matches C++ signature: Java_com_bearmod_auth_SimpleLicenseVerifier_ID(JNIEnv*, jobject)
@@ -59,32 +122,30 @@ public class SimpleLicenseVerifier {
     private static final String APP_NAME = "com.bearmod";
     private static final String VERSION = "1.3"; // Application version
     private static final String API_URL = "https://keyauth.win/api/1.3/";
-    // Test-only override for API base URL (not persisted). Visible to androidTest in same package.
-    static volatile String apiBaseOverride = null; // null => use production API_URL
-
+    // Optional API base override for diagnostics; null means use official URL
+    private static String apiBaseOverride = null;
     private static String getApiUrl() {
         return (apiBaseOverride != null && !apiBaseOverride.isEmpty()) ? apiBaseOverride : API_URL;
     }
-
     /**
-     * Set a temporary API base URL for testing (androidTest). Do not use in production code.
-     * Passing null or empty will clear the override.
+     * Override KeyAuth API base URL for testing or diagnostics.
+     * Pass null/empty to reset to the official URL.
      */
-    static void setApiBaseForTesting(String base) {
-        apiBaseOverride = (base != null && !base.isEmpty()) ? base : null;
+    public static void setApiBaseOverride(String override) {
+        apiBaseOverride = (override != null && !override.trim().isEmpty()) ? override.trim() : null;
     }
-    /** Clear the temporary API base URL override (testing only). */
-    static void clearApiBaseForTesting() { apiBaseOverride = null; }
-
-    // Alternative API URLs for testing
-    private static final String[] ALTERNATIVE_API_URLS = {
-        "https://keyauth.win/api/1.2/",
-        "https://keyauth.win/api/1.1/",
-        "https://keyauth.win/api/1.0/"
-    };
-
     // Debug flag for enhanced logging
     private static final boolean DEBUG_MODE = false;
+
+    // Shared HTTP client (consistent timeouts to avoid UI watchdog timeouts)
+    private static final java.util.concurrent.TimeUnit TU = java.util.concurrent.TimeUnit.SECONDS;
+    private static final OkHttpClient HTTP_CLIENT = new OkHttpClient.Builder()
+            .connectTimeout(10, TU)
+            .writeTimeout(10, TU)
+            .readTimeout(10, TU)
+            .callTimeout(12, TU)
+            .retryOnConnectionFailure(false)
+            .build();
 
     // Security policy
     private static final int MIN_HWID_LENGTH = 20; // HWID.java currently returns 32 hex chars
@@ -123,11 +184,12 @@ public class SimpleLicenseVerifier {
 
     private static void markTokenStatus(Context context) {
         try {
-            SharedPreferences prefs = context.getSharedPreferences("keyauth_data", Context.MODE_PRIVATE);
+            migrateLegacyPrefs(context);
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_MAIN(), Context.MODE_PRIVATE);
             prefs.edit()
-                    .putString("token_status", SimpleLicenseVerifier.TOKEN_STATUS_USED)
-                    .putBoolean("token_banned", false)
-                    .putLong("token_last_validated", System.currentTimeMillis())
+                    .putString(K_T_STATUS(), SimpleLicenseVerifier.TOKEN_STATUS_USED)
+                    .putBoolean(K_T_BANNED(), false)
+                    .putLong(K_T_LAST(), System.currentTimeMillis())
                     .apply();
         } catch (Exception e) {
             Log.e(TAG, "Failed to mark token status", e);
@@ -136,10 +198,11 @@ public class SimpleLicenseVerifier {
 
     private static boolean validateTokenStatus(Context context) {
         try {
-            SharedPreferences prefs = context.getSharedPreferences("keyauth_data", Context.MODE_PRIVATE);
-            String token = prefs.getString("auth_token", null);
-            String status = prefs.getString("token_status", null);
-            boolean banned = prefs.getBoolean("token_banned", false);
+            migrateLegacyPrefs(context);
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_MAIN(), Context.MODE_PRIVATE);
+            String token = prefs.getString(K_TOKEN(), null);
+            String status = prefs.getString(K_T_STATUS(), null);
+            boolean banned = prefs.getBoolean(K_T_BANNED(), false);
             if (token == null || token.isEmpty()) {
                 Log.w(TAG, "No stored auth token found");
                 return false;
@@ -192,15 +255,15 @@ public class SimpleLicenseVerifier {
     }
 
     private static boolean isHwidResetAllowed(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences("device_info", Context.MODE_PRIVATE);
-        long last = prefs.getLong("hwid_last_reset", 0L);
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_DEVICE(), Context.MODE_PRIVATE);
+        long last = prefs.getLong(K_HWID_LAST_RESET(), 0L);
         long now = System.currentTimeMillis();
         return (now - last) >= HWID_RESET_COOLDOWN_MS;
     }
 
     private static long getHwidResetRemainingMs(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences("device_info", Context.MODE_PRIVATE);
-        long last = prefs.getLong("hwid_last_reset", 0L);
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_DEVICE(), Context.MODE_PRIVATE);
+        long last = prefs.getLong(K_HWID_LAST_RESET(), 0L);
         long now = System.currentTimeMillis();
         long passed = now - last;
         return Math.max(0, HWID_RESET_COOLDOWN_MS - passed);
@@ -253,14 +316,11 @@ public class SimpleLicenseVerifier {
         // Run in background thread
         CompletableFuture.runAsync(() -> {
             try {
-                // Create HTTP client
-                OkHttpClient client = new OkHttpClient.Builder()
-                        .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-                        .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-                        .build();
+                // Use shared HTTP client
+                OkHttpClient client = HTTP_CLIENT;
 
                 // Step 1: Initialize KeyAuth application
-                if (!initializeKeyAuth(client)) {
+                if (initializeKeyAuth(client)) {
                     callback.onError("KeyAuth initialization failed");
                     return;
                 }
@@ -310,10 +370,11 @@ public class SimpleLicenseVerifier {
      * @param context Application context
      */
     public static void clearStoredAuth(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences("keyauth_data", Context.MODE_PRIVATE);
+        migrateLegacyPrefs(context);
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_MAIN(), Context.MODE_PRIVATE);
         prefs.edit()
-                .remove("session_id")
-                .remove("user_expiration")
+                .remove(K_SESSION())
+                .remove(K_EXP())
                 .apply();
 
         // Clear runtime variables
@@ -341,16 +402,13 @@ public class SimpleLicenseVerifier {
         // Run in background thread to avoid blocking UI
         CompletableFuture.runAsync(() -> {
             try {
-                // Create HTTP client
-                OkHttpClient client = new OkHttpClient.Builder()
-                        .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-                        .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-                        .build();
+                // Use shared HTTP client
+                OkHttpClient client = HTTP_CLIENT;
 
                 // Step 1: Initialize KeyAuth application (required before other functions) - include token/hash if we have them.
             // KeyAuth initialization (token validation disabled server-side)
 
-                if (!initializeKeyAuth(client)) {
+                if (initializeKeyAuth(client)) {
                     callback.onFailure("KeyAuth initialization failed");
                     return;
                 }
@@ -433,12 +491,12 @@ public class SimpleLicenseVerifier {
                         } else {
                             Log.w(TAG, "Init success but no session ID present; proceeding, license call may still work");
                         }
-                        return true;
+                        return false;
                     } else {
                         String errorMsg = extractErrorMessage(responseBody);
                         Log.e(TAG, "KeyAuth initialization failed: " + errorMsg);
                         Log.e(TAG, "Full response for debugging: " + responseBody);
-                        return false;
+                        return true;
                     }
                 } else {
                     String errorBody = "";
@@ -449,14 +507,14 @@ public class SimpleLicenseVerifier {
                     }
                     Log.e(TAG, "KeyAuth init failed: HTTP " + response.code());
                     Log.e(TAG, "Error response body: " + errorBody);
-                    return false;
+                    return true;
                 }
             }
 
         } catch (Exception e) {
             Log.e(TAG, "KeyAuth initialization exception", e);
             Log.e(TAG, "Exception details: " + e.getMessage());
-            return false;
+            return true;
         }
     }
 
@@ -502,8 +560,8 @@ public class SimpleLicenseVerifier {
 
                     if (isValid) {
                         // Enforce HWID lock: ensure stored HWID matches current device HWID
-                        SharedPreferences prefs = context.getSharedPreferences("keyauth_data", Context.MODE_PRIVATE);
-                        String storedHwid = prefs.getString("hwid", null);
+                        SharedPreferences prefs = context.getSharedPreferences(PREFS_MAIN(), Context.MODE_PRIVATE);
+                        String storedHwid = prefs.getString(K_HWID(), null);
                         if (isValidHwid(currentHwid)) {
                             Log.e(TAG, "Invalid current HWID");
                             clearStoredAuth(context);
@@ -530,13 +588,13 @@ public class SimpleLicenseVerifier {
                         isAuthenticated = true;
 
                         // Restore user expiration from stored data
-                        userExpiration = prefs.getString("user_expiration", null);
+                        userExpiration = prefs.getString(K_EXP(), null);
 
                         // Ensure session and HWID are persisted for future launches
                         prefs.edit()
-                                .putString("session_id", sessionId)
-                                .putString("hwid", currentHwid)
-                                .putLong("auth_timestamp", System.currentTimeMillis())
+                                .putString(K_SESSION(), sessionId)
+                                .putString(K_HWID(), currentHwid)
+                                .putLong(K_ATS(), System.currentTimeMillis())
                                 .apply();
 
                         // Update C++ authentication state via JNI bridge with current HWID
@@ -544,6 +602,7 @@ public class SimpleLicenseVerifier {
                         updateCppAuthenticationState(sessionId, generatedToken, currentHwid, true);
 
                         Log.d(TAG, "Session validation successful, authentication state restored");
+                        if (DEBUG_MODE) Log.d(TAG, "Callback: onSuccess(Auto-login successful)");
                         callback.onSuccess("Auto-login successful");
                     } else {
                         String errorMsg = extractErrorMessage(responseBody);
@@ -555,6 +614,7 @@ public class SimpleLicenseVerifier {
                         // Clear C++ authentication state on failure
                         updateCppAuthenticationState("", "", "", false);
 
+                        if (DEBUG_MODE) Log.d(TAG, "Callback: onError(session invalid): " + errorMsg);
                         callback.onError("Stored session is invalid or expired: " + errorMsg);
                     }
                 } else {
@@ -566,19 +626,18 @@ public class SimpleLicenseVerifier {
                     }
                     Log.e(TAG, "Session validation failed: HTTP " + response.code());
                     Log.e(TAG, "Error response body: " + errorBody);
+                    if (DEBUG_MODE) Log.d(TAG, "Callback: onError(network check): HTTP " + response.code());
                     callback.onError("Network error: HTTP " + response.code() + " - " + errorBody);
                 }
             }
 
         } catch (Exception e) {
             Log.e(TAG, "Session validation exception", e);
+            if (DEBUG_MODE) Log.d(TAG, "Callback: onError(session exception): " + e.getMessage());
             callback.onError("Session validation error: " + e.getMessage());
         }
     }
 
-    /**
-     * Verify license with KeyAuth (after initialization, using session ID)
-     */
     /**
      * Verify license with KeyAuth (after initialization, using session ID)
      */
@@ -631,18 +690,22 @@ public class SimpleLicenseVerifier {
                         isAuthenticated = true;
                         String generatedToken = generateDeviceToken(sessionId, hwid);
                         updateCppAuthenticationState(sessionId, generatedToken, hwid, true);
+                        if (DEBUG_MODE) Log.d(TAG, "Callback: onSuccess(license ok)");
                         callback.onSuccess("License verified successfully");
                     } else {
                         String errorMsg = extractErrorMessage(responseBody);
+                        if (DEBUG_MODE) Log.d(TAG, "Callback: onFailure(license failed): " + errorMsg);
                         callback.onFailure("License verification failed: " + errorMsg);
                     }
                 } else {
+                    if (DEBUG_MODE) Log.d(TAG, "Callback: onFailure(network license): HTTP " + response.code());
                     callback.onFailure("Network error: " + response.code());
                 }
             }
 
         } catch (Exception e) {
             Log.e(TAG, "License verification exception", e);
+            if (DEBUG_MODE) Log.d(TAG, "Callback: onFailure(license exception): " + e.getMessage());
             callback.onFailure("License verification error: " + e.getMessage());
         }
     }
@@ -684,14 +747,15 @@ public class SimpleLicenseVerifier {
      */
     private static String getStoredToken(Context context) {
         // Method 1: Try SharedPreferences first (fastest access)
-        SharedPreferences prefs = context.getSharedPreferences("keyauth_data", Context.MODE_PRIVATE);
-        String token = prefs.getString("auth_token", null);
+        migrateLegacyPrefs(context);
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_MAIN(), Context.MODE_PRIVATE);
+        String token = prefs.getString(K_TOKEN(), null);
         if (token != null && !token.isEmpty()) {
             Log.d(TAG, "Retrieved token from SharedPreferences");
             return token;
         }
 
-        // Method 2: Try external storage (survives app reinstallation)
+        // Method 2: Try external storage cache
         try {
             File externalDir = context.getExternalFilesDir(null);
             if (externalDir != null) {
@@ -702,7 +766,7 @@ public class SimpleLicenseVerifier {
                         if (storedToken != null && !storedToken.isEmpty()) {
                             Log.d(TAG, "Retrieved token from external storage");
                             // Re-cache in SharedPreferences for faster access
-                            prefs.edit().putString("auth_token", storedToken).apply();
+                            prefs.edit().putString(K_TOKEN(), storedToken).apply();
                             return storedToken;
                         }
                     }
@@ -717,19 +781,19 @@ public class SimpleLicenseVerifier {
     }
 
     /**
-     * Get stored session ID (simplified approach based on Python test results)
-     * Focus on session ID persistence rather than custom token generation
+     * Get stored session ID with persistence fallback
      */
     private static String getStoredSessionId(Context context) {
         // Method 1: Try SharedPreferences first (fastest access)
-        SharedPreferences prefs = context.getSharedPreferences("keyauth_data", Context.MODE_PRIVATE);
-        String sessionId = prefs.getString("session_id", null);
+        migrateLegacyPrefs(context);
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_MAIN(), Context.MODE_PRIVATE);
+        String sessionId = prefs.getString(K_SESSION(), null);
         if (sessionId != null && !sessionId.isEmpty()) {
             Log.d(TAG, "Retrieved session ID from SharedPreferences");
             return sessionId;
         }
 
-        // Method 2: Try external storage (survives app reinstallation)
+        // Method 2: Try external storage cache
         try {
             File externalDir = context.getExternalFilesDir(null);
             if (externalDir != null) {
@@ -741,9 +805,9 @@ public class SimpleLicenseVerifier {
                         if (storedSessionId != null && !storedSessionId.isEmpty()) {
                             Log.d(TAG, "Retrieved session ID from external storage");
                             // Re-cache in SharedPreferences for faster access
-                            prefs.edit().putString("session_id", storedSessionId).apply();
+                            prefs.edit().putString(K_SESSION(), storedSessionId).apply();
                             if (storedHwid != null && !storedHwid.isEmpty()) {
-                                prefs.edit().putString("hwid", storedHwid).apply();
+                                prefs.edit().putString(K_HWID(), storedHwid).apply();
                             }
                             return storedSessionId;
                         }
@@ -761,366 +825,91 @@ public class SimpleLicenseVerifier {
     // ========================================
     // CENTRALIZED LICENSE KEY STORAGE METHODS
     // ========================================
-
     /**
-     * Save license key to persistent storage
+     * Persist the license key only if Remember Key is currently enabled (self-selection).
+     * Does NOT toggle the remember flag.
      */
     public static void saveLicenseKey(Context context, String licenseKey) {
-        SharedPreferences prefs = context.getSharedPreferences("keyauth_data", Context.MODE_PRIVATE);
-        prefs.edit()
-                .putString("saved_license_key", licenseKey)
-                .putBoolean("remember_key", true)
-                .apply();
-        Log.d(TAG, "License key saved to persistent storage");
+        try {
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_MAIN(), Context.MODE_PRIVATE);
+            if (prefs.getBoolean(K_REMEMBER(), false)) {
+                prefs.edit().putString(K_LIC_SAVED(), licenseKey).apply();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to save license key", e);
+        }
     }
 
     /**
-     * Get saved license key from persistent storage
+     * Get saved license key if Remember Key is enabled
      */
     public static String getSavedLicenseKey(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences("keyauth_data", Context.MODE_PRIVATE);
-        return prefs.getString("saved_license_key", "");
+        try {
+            migrateLegacyPrefs(context);
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_MAIN(), Context.MODE_PRIVATE);
+            boolean remember = prefs.getBoolean(K_REMEMBER(), false);
+            if (!remember) return "";
+            return prefs.getString(K_LIC_SAVED(), "");
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to get saved license key", e);
+            return "";
+        }
     }
 
     /**
-     * Check if remember key is enabled
+     * Whether Remember Key is enabled
      */
     public static boolean isRememberKeyEnabled(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences("keyauth_data", Context.MODE_PRIVATE);
-        return prefs.getBoolean("remember_key", false);
+        try {
+            migrateLegacyPrefs(context);
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_MAIN(), Context.MODE_PRIVATE);
+            return prefs.getBoolean(K_REMEMBER(), false);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to read remember flag", e);
+            return false;
+        }
     }
 
     /**
-     * Save auto-login preference
+     * Explicitly set Remember Key preference (self-selection).
+     */
+    public static void setRememberKeyPreference(Context context, boolean enabled) {
+        try {
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_MAIN(), Context.MODE_PRIVATE);
+            prefs.edit().putBoolean(K_REMEMBER(), enabled).apply();
+            if (!enabled) {
+                // Clear stored license when turning off remember to avoid lingering secrets
+                prefs.edit().remove(K_LIC_SAVED()).apply();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to save remember preference", e);
+        }
+    }
+
+    /**
+     * Persist auto-login preference
      */
     public static void saveAutoLoginPreference(Context context, boolean enabled) {
-        SharedPreferences prefs = context.getSharedPreferences("keyauth_data", Context.MODE_PRIVATE);
-        prefs.edit()
-                .putBoolean("auto_login_enabled", enabled)
-                .apply();
-        Log.d(TAG, "Auto-login preference saved: " + enabled);
+        try {
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_MAIN(), Context.MODE_PRIVATE);
+            prefs.edit().putBoolean(K_AUTOLOGIN(), enabled).apply();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to save auto-login preference", e);
+        }
     }
 
     /**
-     * Check if auto-login is enabled
+     * Whether auto-login is enabled
      */
     public static boolean isAutoLoginEnabled(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences("keyauth_data", Context.MODE_PRIVATE);
-        return prefs.getBoolean("auto_login_enabled", false);
-    }
-
-    /**
-     * Clear saved license key
-     */
-    public static void clearSavedLicenseKey(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences("keyauth_data", Context.MODE_PRIVATE);
-        prefs.edit()
-                .remove("saved_license_key")
-                .putBoolean("remember_key", false)
-                .putBoolean("auto_login_enabled", false)
-                .apply();
-        Log.d(TAG, "Saved license key cleared");
-    }
-
-    /**
-     * Store session data with enhanced persistence (simplified approach)
-     * Based on successful Python test - focus on session ID persistence
-     */
-    private static void storeSessionData(Context context, String sessionId, String hwid, String responseBody) {
         try {
-            // Store in SharedPreferences (primary storage)
-            SharedPreferences prefs = context.getSharedPreferences("keyauth_data", Context.MODE_PRIVATE);
-            prefs.edit()
-                    .putString("session_id", sessionId)
-                    .putString("hwid", hwid)
-                    .putLong("auth_timestamp", System.currentTimeMillis())
-                    .apply();
-
-            // Extract and store user expiration if available
-            try {
-                if (responseBody.contains("\"expiry\"")) {
-                    String expiry = extractJsonValue(responseBody, "expiry");
-                    if (expiry != null) {
-                        userExpiration = convertUnixToDateTime(expiry);
-                        prefs.edit().putString("user_expiration", userExpiration).apply();
-                        Log.d(TAG, "User expiration stored: " + userExpiration);
-                    }
-                }
-            } catch (Exception e) {
-                Log.d(TAG, "Could not parse expiration data: " + e.getMessage());
-            }
-
-            // Backup to external storage for persistence across app reinstallation
-            try {
-                File externalDir = context.getExternalFilesDir(null);
-                if (externalDir != null) {
-                    File sessionFile = new File(externalDir, ".session_cache");
-                    try (FileWriter writer = new FileWriter(sessionFile)) {
-                        writer.write(sessionId + "\n" + hwid + "\n" + System.currentTimeMillis());
-                    }
-                    Log.d(TAG, "Session data backed up to external storage");
-                }
-            } catch (Exception e) {
-                Log.d(TAG, "External session backup failed: " + e.getMessage());
-            }
-
-            Log.d(TAG, "Session data stored successfully with enhanced persistence");
-
+            migrateLegacyPrefs(context);
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_MAIN(), Context.MODE_PRIVATE);
+            return prefs.getBoolean(K_AUTOLOGIN(), false);
         } catch (Exception e) {
-            Log.e(TAG, "Failed to store session data", e);
+            Log.e(TAG, "Failed to read auto-login preference", e);
+            return false;
         }
-    }
-
-    /**
-     * Store authentication token with enhanced persistence
-     * Stores in multiple locations to survive app reinstallation
-     */
-    private static void storeTokenWithPersistence(Context context, String token, String sessionId, String userExpiration) {
-        try {
-            // Method 1: Store in SharedPreferences (fastest access)
-            SharedPreferences prefs = context.getSharedPreferences("keyauth_data", Context.MODE_PRIVATE);
-            prefs.edit()
-                    .putString("auth_token", token)
-                    .putString("session_id", sessionId)
-                    .putString("user_expiration", userExpiration)
-                    .apply();
-
-            // Method 2: Store in external storage (survives app reinstallation)
-            try {
-                File externalDir = context.getExternalFilesDir(null);
-                if (externalDir != null) {
-                    File tokenFile = new File(externalDir, ".auth_cache");
-                    try (FileWriter writer = new FileWriter(tokenFile)) {
-                        writer.write(token);
-                    }
-                    Log.d(TAG, "Token stored in external storage for persistence");
-                }
-            } catch (Exception e) {
-                Log.d(TAG, "External token storage failed: " + e.getMessage());
-            }
-
-            Log.d(TAG, "Token stored with enhanced persistence");
-
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to store token with persistence", e);
-        }
-    }
-
-    /**
-     * Extract user data from KeyAuth response
-     */
-    private static void extractUserData(String responseBody) {
-        try {
-            // Extract user expiration date
-            if (responseBody.contains("\"expiry\":")) {
-                int start = responseBody.indexOf("\"expiry\":\"") + 10;
-                int end = responseBody.indexOf("\"", start);
-                if (start > 9 && end > start) {
-                    String expiryTimestamp = responseBody.substring(start, end);
-                    userExpiration = convertUnixToDateTime(expiryTimestamp);
-                    Log.d(TAG, "User expiration extracted: " + userExpiration);
-                }
-            }
-
-            // Extract other user data if needed (subscription info, etc.)
-            // This can be expanded based on KeyAuth response structure
-
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to extract user data", e);
-        }
-    }
-
-    /**
-     * Convert Unix timestamp to "yyyy-MM-dd HH:mm:ss" format
-     */
-    private static String convertUnixToDateTime(String unixTimestamp) {
-        try {
-            long timestamp = Long.parseLong(unixTimestamp);
-            java.util.Date date = new java.util.Date(timestamp * 1000L); // Convert to milliseconds
-            @SuppressLint("SimpleDateFormat") java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            return sdf.format(date);
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to convert Unix timestamp", e);
-            return null;
-        }
-    }
-
-    /**
-     * Extract session ID from KeyAuth init response
-     */
-    private static String extractSessionId(String responseBody) {
-        try {
-            Log.d(TAG, "=== Session ID Extraction Debug ===");
-            Log.d(TAG, "Response body length: " + responseBody.length());
-            Log.d(TAG, "Looking for sessionid in response...");
-
-            // Try multiple possible session ID field names
-            String[] sessionFields = {"sessionid", "session_id", "session", "sid"};
-
-            for (String field : sessionFields) {
-                String pattern1 = "\"" + field + "\":\"";
-                String pattern2 = "\"" + field + "\": \"";
-                String pattern3 = "\"" + field + "\":";  // For non-quoted values
-
-                Log.d(TAG, "Checking pattern: " + pattern1);
-
-                if (responseBody.contains(pattern1)) {
-                    int start = responseBody.indexOf(pattern1) + pattern1.length();
-                    int end = responseBody.indexOf("\"", start);
-                    if (start > pattern1.length() - 1 && end > start) {
-                        String sessionId = responseBody.substring(start, end);
-                        Log.d(TAG, "Session ID found with pattern '" + pattern1 + "': " + sessionId.substring(0, Math.min(8, sessionId.length())) + "...");
-                        return sessionId;
-                    }
-                } else if (responseBody.contains(pattern2)) {
-                    int start = responseBody.indexOf(pattern2) + pattern2.length();
-                    int end = responseBody.indexOf("\"", start);
-                    if (start > pattern2.length() - 1 && end > start) {
-                        String sessionId = responseBody.substring(start, end);
-                        Log.d(TAG, "Session ID found with pattern '" + pattern2 + "': " + sessionId.substring(0, Math.min(8, sessionId.length())) + "...");
-                        return sessionId;
-                    }
-                } else if (responseBody.contains(pattern3)) {
-                    // Handle non-quoted session IDs
-                    int start = responseBody.indexOf(pattern3) + pattern3.length();
-                    // Skip whitespace and quotes
-                    while (start < responseBody.length() && (responseBody.charAt(start) == ' ' || responseBody.charAt(start) == '"')) {
-                        start++;
-                    }
-                    int end = start;
-                    // Find end of session ID (comma, quote, or whitespace)
-                    while (end < responseBody.length() &&
-                           responseBody.charAt(end) != ',' &&
-                           responseBody.charAt(end) != '"' &&
-                           responseBody.charAt(end) != ' ' &&
-                           responseBody.charAt(end) != '}') {
-                        end++;
-                    }
-                    if (end > start) {
-                        String sessionId = responseBody.substring(start, end);
-                        Log.d(TAG, "Session ID found with pattern '" + pattern3 + "': " + sessionId.substring(0, Math.min(8, sessionId.length())) + "...");
-                        return sessionId;
-                    }
-                }
-            }
-
-            Log.e(TAG, "No session ID found in response");
-            Log.e(TAG, "Response content: " + responseBody);
-            return null;
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to extract session ID", e);
-            return null;
-        }
-    }
-
-    /**
-     * Extract error message from KeyAuth response
-     */
-    private static String extractErrorMessage(String responseBody) {
-        try {
-            Log.d(TAG, "=== Error Message Extraction Debug ===");
-
-            // Try multiple possible error field names
-            String[] errorFields = {"message", "error", "msg", "reason"};
-
-            for (String field : errorFields) {
-                String pattern1 = "\"" + field + "\":\"";
-                String pattern2 = "\"" + field + "\": \"";
-
-                if (responseBody.contains(pattern1)) {
-                    int start = responseBody.indexOf(pattern1) + pattern1.length();
-                    int end = responseBody.indexOf("\"", start);
-                    if (start > pattern1.length() - 1 && end > start) {
-                        String errorMsg = responseBody.substring(start, end);
-                        Log.d(TAG, "Error message found: " + errorMsg);
-                        return errorMsg;
-                    }
-                } else if (responseBody.contains(pattern2)) {
-                    int start = responseBody.indexOf(pattern2) + pattern2.length();
-                    int end = responseBody.indexOf("\"", start);
-                    if (start > pattern2.length() - 1 && end > start) {
-                        String errorMsg = responseBody.substring(start, end);
-                        Log.d(TAG, "Error message found: " + errorMsg);
-                        return errorMsg;
-                    }
-                }
-            }
-
-            Log.d(TAG, "No specific error message found, returning full response");
-            return "API Error: " + responseBody;
-        } catch (Exception e) {
-            Log.e(TAG, "Error extracting error message", e);
-            return "Unknown error: " + e.getMessage();
-        }
-    }
-
-    /**
-     * Quick synchronous license check (for cases where you need immediate result)
-     * Note: This blocks the calling thread, use sparingly and not on UI thread
-     */
-    public static boolean quickLicenseCheck(Context context, String licenseKey) {
-        try {
-            OkHttpClient client = new OkHttpClient.Builder()
-                    .connectTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
-                    .readTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
-                    .build();
-
-            // Step 1: Initialize KeyAuth (required)
-            if (!initializeKeyAuth(client)) {
-                Log.e(TAG, "Quick license check failed: KeyAuth initialization failed");
-                return false;
-            }
-
-            // Step 2: Verify license (API v1.3 requires session ID)
-            String hwid = HWID.getHWID();
-            Log.d(TAG, "Quick license check with HWID: " + hwid);
-
-            FormBody.Builder formBuilder2 = new FormBody.Builder()
-                    .add("type", "license")
-                    .add("key", licenseKey)
-                    .add("hwid", hwid)
-                    .add("name", APP_NAME)
-                    .add("ownerid", OWNER_ID)
-                    .add("ver", VERSION);
-
-            if (sessionId != null && !sessionId.isEmpty()) {
-                formBuilder2.add("sessionid", sessionId);
-            }
-
-            FormBody formBody = formBuilder2.build();
-
-            Request request = new Request.Builder()
-                    .url(API_URL)
-                    .post(formBody)
-                    .addHeader("User-Agent", "BearMod/1.0")
-                    .build();
-
-            try (Response response = client.newCall(request).execute()) {
-                if (response.isSuccessful()) {
-                    String responseBody = response.body().string();
-                    Log.d(TAG, "Quick license check response: " + responseBody);
-
-                    boolean success = responseBody.contains("\"success\":true") ||
-                                     responseBody.contains("\"success\": true");
-
-                    if (success) {
-                        // Extract and store session ID for future use
-                        String extractedSessionId = extractSessionId(responseBody);
-                        if (extractedSessionId != null) {
-                            sessionId = extractedSessionId;
-                            Log.d(TAG, "Quick license check successful, session ID extracted");
-                        }
-                    }
-
-                    return success;
-                } else {
-                    Log.e(TAG, "Quick license check failed: HTTP " + response.code());
-                }
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Quick license check failed", e);
-        }
-        return false;
     }
 
     /**
@@ -1129,8 +918,8 @@ public class SimpleLicenseVerifier {
     private static void cacheHWID(Context context, String hwid) {
         try {
             // Method 1: SharedPreferences (survives app updates but not uninstall)
-            SharedPreferences prefs = context.getSharedPreferences("device_info", Context.MODE_PRIVATE);
-            prefs.edit().putString("cached_hwid", hwid).apply();
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_DEVICE(), Context.MODE_PRIVATE);
+            prefs.edit().putString(K_CACHED_HWID(), hwid).apply();
 
             // Method 2: External storage cache (survives uninstall if permissions allow)
             try {
@@ -1172,8 +961,8 @@ public class SimpleLicenseVerifier {
     private static String getCachedHWID(Context context) {
         try {
             // Method 1: Try SharedPreferences first
-            SharedPreferences prefs = context.getSharedPreferences("device_info", Context.MODE_PRIVATE);
-            String cachedHwid = prefs.getString("cached_hwid", null);
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_DEVICE(), Context.MODE_PRIVATE);
+            String cachedHwid = prefs.getString(K_CACHED_HWID(), null);
             if (cachedHwid != null && !cachedHwid.isEmpty()) {
                 Log.d(TAG, "Retrieved HWID from SharedPreferences");
                 return cachedHwid;
@@ -1190,7 +979,7 @@ public class SimpleLicenseVerifier {
                             if (hwid != null && !hwid.isEmpty()) {
                                 Log.d(TAG, "Retrieved HWID from external storage");
                                 // Re-cache in SharedPreferences for faster access
-                                prefs.edit().putString("cached_hwid", hwid).apply();
+                                prefs.edit().putString(K_CACHED_HWID(), hwid).apply();
                                 return hwid;
                             }
                         }
@@ -1210,7 +999,7 @@ public class SimpleLicenseVerifier {
                         if (hwid != null && !hwid.isEmpty()) {
                             Log.d(TAG, "Retrieved HWID from internal storage");
                             // Re-cache in SharedPreferences for faster access
-                            prefs.edit().putString("cached_hwid", hwid).apply();
+                            prefs.edit().putString(K_CACHED_HWID(), hwid).apply();
                             return hwid;
                         }
                     }
@@ -1240,8 +1029,8 @@ public class SimpleLicenseVerifier {
             }
 
             // Clear SharedPreferences
-            SharedPreferences prefs = context.getSharedPreferences("device_info", Context.MODE_PRIVATE);
-            prefs.edit().remove("cached_hwid").putLong("hwid_last_reset", System.currentTimeMillis()).apply();
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_DEVICE(), Context.MODE_PRIVATE);
+            prefs.edit().remove(K_CACHED_HWID()).putLong(K_HWID_LAST_RESET(), System.currentTimeMillis()).apply();
 
             // Clear external storage cache
             try {
@@ -1284,13 +1073,13 @@ public class SimpleLicenseVerifier {
     private static void storeAuthenticationData(Context context, String sessionId, String hwid, String responseBody) {
         try {
             // Store in SharedPreferences (primary storage)
-            SharedPreferences prefs = context.getSharedPreferences("keyauth_data", Context.MODE_PRIVATE);
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_MAIN(), Context.MODE_PRIVATE);
             SharedPreferences.Editor editor = prefs.edit();
 
             // Store session data
-            editor.putString("session_id", sessionId);
-            editor.putString("hwid", hwid);
-            editor.putLong("auth_timestamp", System.currentTimeMillis());
+            editor.putString(K_SESSION(), sessionId);
+            editor.putString(K_HWID(), hwid);
+            editor.putLong(K_ATS(), System.currentTimeMillis());
 
             // Extract and store user info from response if available
             try {
@@ -1299,16 +1088,11 @@ public class SimpleLicenseVerifier {
                     // Extract expiry if present in response
                     String expiry = extractJsonValue(responseBody, "expiry");
                     if (expiry != null) {
-                        editor.putString("user_expiry", expiry);
+                        editor.putString(K_EXP(), expiry);
                     }
                 }
 
-                if (responseBody.contains("\"subscription\"")) {
-                    String subscription = extractJsonValue(responseBody, "subscription");
-                    if (subscription != null) {
-                        editor.putString("user_subscription", subscription);
-                    }
-                }
+                // Subscription not used in current auth model; omit storing any "subscription" field
             } catch (Exception e) {
                 Log.d(TAG, "Could not parse additional user data: " + e.getMessage());
             }
@@ -1342,7 +1126,7 @@ public class SimpleLicenseVerifier {
      */
     private static String extractJsonValue(String json, String key) {
         try {
-            String searchKey = "\"" + key + "\":\"";
+            String searchKey = "\"" + key + "\":" + "\"";
             int startIndex = json.indexOf(searchKey);
             if (startIndex != -1) {
                 startIndex += searchKey.length();
@@ -1356,6 +1140,76 @@ public class SimpleLicenseVerifier {
             Log.d(TAG, "Failed to extract JSON value for key: " + key + " - " + e.getMessage());
         }
         return null;
+    }
+
+    // ========================================
+    // Compatibility helpers (restored wrappers)
+    // ========================================
+    /**
+     * Store token with persistence across storage locations and record session/expiry.
+     * This method restores a previously referenced helper removed during refactor.
+     */
+    private static void storeTokenWithPersistence(Context context, String token, String sessionIdValue, String expiry) {
+        try {
+            migrateLegacyPrefs(context);
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_MAIN(), Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putString(K_TOKEN(), token);
+            if (sessionIdValue != null && !sessionIdValue.isEmpty()) editor.putString(K_SESSION(), sessionIdValue);
+            if (expiry != null && !expiry.isEmpty()) editor.putString(K_EXP(), expiry);
+            editor.putLong(K_ATS(), System.currentTimeMillis());
+            editor.apply();
+
+            // External backup for resilience
+            try {
+                File externalDir = context.getExternalFilesDir(null);
+                if (externalDir != null) {
+                    File tokenFile = new File(externalDir, ".auth_cache");
+                    try (FileWriter writer = new FileWriter(tokenFile)) {
+                        writer.write(token);
+                    }
+                }
+            } catch (Exception e) {
+                Log.d(TAG, "External token backup failed: " + e.getMessage());
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to persist token", e);
+        }
+    }
+
+    /**
+     * Extract a session ID from a KeyAuth response body.
+     * Tries explicit JSON key first, then falls back to alternative pattern matching.
+     */
+    private static String extractSessionId(String responseBody) {
+        try {
+            if (responseBody == null) return null;
+            String fromJson = extractJsonValue(responseBody, "sessionid");
+            if (fromJson != null && !fromJson.isEmpty()) return fromJson;
+        } catch (Exception ignored) {}
+        return extractSessionIdAlternative(responseBody);
+    }
+
+    /**
+     * Extract an error message from a KeyAuth response body.
+     */
+    private static String extractErrorMessage(String responseBody) {
+        try {
+            if (responseBody == null) return "Unknown error";
+            String msg = extractJsonValue(responseBody, "message");
+            if (msg == null || msg.isEmpty()) msg = extractJsonValue(responseBody, "msg");
+            return (msg != null && !msg.isEmpty()) ? msg : "Unknown error";
+        } catch (Exception e) {
+            return "Unknown error";
+        }
+    }
+
+    /**
+     * Wrapper retained for compatibility with previous code paths.
+     * Delegates to centralized authentication data storage.
+     */
+    private static void storeSessionData(Context context, String sessionIdValue, String hwid, String responseBody) {
+        storeAuthenticationData(context, sessionIdValue, hwid, responseBody);
     }
 
     /**
@@ -1377,177 +1231,6 @@ public class SimpleLicenseVerifier {
         APP_HASH.length();
 
         Log.d(TAG, "Configuration validation result: " + "✅ VALID");
-    }
-
-    /**
-     * Test the fixed KeyAuth authentication flow
-     * This method tests the corrected Token+SessionID+HWID flow
-     */
-    public static void testFixedAuthFlow(Context context, String testLicenseKey, AuthCallback callback) {
-        CompletableFuture.runAsync(() -> {
-            try {
-                Log.d(TAG, "=== Testing Fixed KeyAuth Authentication Flow ===");
-
-                OkHttpClient testClient = new OkHttpClient.Builder()
-                        .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
-                        .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
-                        .build();
-
-                // Step 1: Test KeyAuth initialization (should not require session ID)
-                Log.d(TAG, "Step 1: Testing KeyAuth initialization...");
-                boolean initResult = initializeKeyAuth(testClient);
-                Log.d(TAG, "Initialization result: " + initResult);
-
-                if (!initResult) {
-                    callback.onError("KeyAuth initialization failed");
-                    return;
-                }
-
-                // Step 2: Test license verification (should extract session ID)
-                Log.d(TAG, "Step 2: Testing license verification...");
-                String hwid = HWID.getHWID();
-                Log.d(TAG, "Using HWID: " + hwid);
-
-                // Use the fixed license verification method
-                verifyLicenseWithKeyAuth(testClient, context, testLicenseKey, hwid, new LicenseCallback() {
-                    @Override
-                    public void onSuccess(String message) {
-                        Log.d(TAG, "Fixed auth flow test successful: " + message);
-                        callback.onSuccess("Fixed authentication flow working correctly");
-                    }
-
-                    @Override
-                    public void onFailure(String error) {
-                        Log.e(TAG, "Fixed auth flow test failed: " + error);
-                        callback.onError("Authentication flow test failed: " + error);
-                    }
-                });
-
-            } catch (Exception e) {
-                Log.e(TAG, "Fixed auth flow test exception", e);
-                callback.onError("Test exception: " + e.getMessage());
-            }
-        });
-    }
-
-    /**
-     * Test basic connectivity to KeyAuth API
-     */
-    private static boolean testBasicConnectivity(OkHttpClient client) {
-        try {
-            Request pingRequest = new Request.Builder()
-                    .url(API_URL)
-                    .get()
-                    .build();
-
-            try (Response response = client.newCall(pingRequest).execute()) {
-                Log.d(TAG, "Basic connectivity test: HTTP " + response.code());
-                return response.code() < 500; // Accept any non-server-error response
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Basic connectivity test failed", e);
-            return false;
-        }
-    }
-
-    /**
-     * Test specific API version
-     */
-    private static boolean testApiVersion(OkHttpClient client, String apiUrl) {
-        try {
-            FormBody formBody = new FormBody.Builder()
-                    .add("type", "init")
-                    .add("name", APP_NAME)
-                    .add("ownerid", OWNER_ID)
-                    .add("ver", VERSION)
-                    .add("hash", APP_HASH)
-                    .build();
-
-            Request request = new Request.Builder()
-                    .url(apiUrl)
-                    .post(formBody)
-                    .addHeader("User-Agent", "BearMod/1.0")
-                    .addHeader("Content-Type", "application/x-www-form-urlencoded")
-                    .build();
-
-            try (Response response = client.newCall(request).execute()) {
-                if (response.isSuccessful()) {
-                    String responseBody = response.body().string();
-                    Log.d(TAG, "API test response (" + apiUrl + "): " + responseBody);
-
-                    boolean success = responseBody.contains("\"success\":true") ||
-                                     responseBody.contains("\"success\": true");
-
-                    if (success) {
-                        String testSessionId = extractSessionId(responseBody);
-                        return testSessionId != null;
-                    }
-                }
-                return false;
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "API version test failed for " + apiUrl, e);
-            return false;
-        }
-    }
-
-    /**
-     * Alternative KeyAuth initialization method (Python-style approach)
-     * This method tries a different approach based on the working Python implementation
-     */
-    private static boolean initializeKeyAuthAlternative(OkHttpClient client) {
-        try {
-            Log.d(TAG, "=== Alternative KeyAuth Initialization ===");
-
-            // Try with different parameter order and formatting
-            FormBody formBody = new FormBody.Builder()
-                    .add("type", "init")
-                    .add("ver", VERSION)
-                    .add("hash", APP_HASH)
-                    .add("name", APP_NAME)
-                    .add("ownerid", OWNER_ID)
-                    .build();
-
-            Request request = new Request.Builder()
-                    .url(API_URL)
-                    .post(formBody)
-                    .addHeader("User-Agent", "KeyAuth")
-                    .addHeader("Content-Type", "application/x-www-form-urlencoded")
-                    .addHeader("Accept", "application/json")
-                    .build();
-
-            Log.d(TAG, "Sending alternative KeyAuth init request...");
-
-            try (Response response = client.newCall(request).execute()) {
-                Log.d(TAG, "Alternative response received - HTTP " + response.code());
-
-                if (response.isSuccessful()) {
-                    String responseBody = response.body().string();
-                    Log.d(TAG, "Alternative init response: " + responseBody);
-
-                    // Try different success detection patterns
-                    boolean success = responseBody.contains("success") &&
-                                     !responseBody.contains("false") &&
-                                     !responseBody.contains("error");
-
-                    if (success) {
-                        // Try extracting session ID with alternative patterns
-                        sessionId = extractSessionIdAlternative(responseBody);
-                        if (sessionId != null) {
-                            Log.d(TAG, "Alternative KeyAuth initialization successful");
-                            return true;
-                        }
-                    }
-                }
-
-                Log.e(TAG, "Alternative KeyAuth initialization failed");
-                return false;
-            }
-
-        } catch (Exception e) {
-            Log.e(TAG, "Alternative KeyAuth initialization exception", e);
-            return false;
-        }
     }
 
     /**
@@ -1589,8 +1272,9 @@ public class SimpleLicenseVerifier {
     private static void updateCppAuthenticationState(String sessionId, String token, String hwid, boolean isValid) {
         try {
             // Call JNI method to update C++ global variables (bValid, g_Auth, g_Token)
-            LoginActivity.updateAuthenticationState(sessionId, token, hwid, isValid);
-            Log.d(TAG, "C++ authentication state updated via JNI bridge - Valid: " + isValid);
+            // Using new server component for authentication state updates
+            com.bearmod.loader.server.SimpleLicenseVerifier.updateAuthenticationState(sessionId, token, hwid, isValid);
+            Log.d(TAG, "C++ authentication state updated via new server component - Valid: " + isValid);
         } catch (Exception e) {
             Log.e(TAG, "Failed to update C++ authentication state", e);
         }

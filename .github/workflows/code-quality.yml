@@ -1,0 +1,145 @@
+name: Code Quality and Refactoring Management for Java-based Android Projects
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Cache Gradle packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+      - name: Run Android Lint
+        run: ./gradlew lint
+      - name: Upload Lint Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results.html
+          retention-days: 30
+
+  duplicate-detection:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Cache jscpd
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-jscpd-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-jscpd-
+      - name: Install jscpd
+        run: npm install -g jscpd
+      - name: Run Duplicate Detection
+        run: jscpd --min-lines 10 --min-tokens 50 --format "console" --output "./jscpd-report" --reporters "console,json" "app/src/main/java"
+      - name: Upload Duplicate Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: duplicate-report
+          path: jscpd-report/
+          retention-days: 30
+
+  sonarqube-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Cache Gradle packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+      - name: Run SonarQube Analysis
+        run: ./gradlew sonarqube
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      - name: Upload SonarQube Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sonarqube-report
+          path: build/sonar/
+          retention-days: 30
+
+  code-quality-summary:
+    needs: [lint, duplicate-detection, sonarqube-analysis]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Download Lint Report
+        uses: actions/download-artifact@v4
+        with:
+          name: lint-report
+      - name: Download Duplicate Report
+        uses: actions/download-artifact@v4
+        with:
+          name: duplicate-report
+      - name: Download SonarQube Report
+        uses: actions/download-artifact@v4
+        with:
+          name: sonarqube-report
+      - name: Generate Summary
+        run: |
+          echo "## Code Quality Summary" > summary.md
+          echo "### Lint Results" >> summary.md
+          if [ -f "lint-results.html" ]; then
+            echo "Lint report generated. Check artifact for details." >> summary.md
+          else
+            echo "No lint report found." >> summary.md
+          fi
+          echo "### Duplicate Detection" >> summary.md
+          if [ -d "jscpd-report" ]; then
+            echo "Duplicate detection report generated. Check artifact for details." >> summary.md
+          else
+            echo "No duplicate report found." >> summary.md
+          fi
+          echo "### SonarQube Analysis" >> summary.md
+          if [ -d "sonar" ]; then
+            echo "SonarQube report generated. Check artifact for details." >> summary.md
+          else
+            echo "No SonarQube report found." >> summary.md
+          fi
+          cat summary.md
+      - name: Comment PR with Summary
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('summary.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });

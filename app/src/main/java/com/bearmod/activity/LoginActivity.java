@@ -6,13 +6,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 
 import android.annotation.SuppressLint;
-import android.content.ClipData;
-import android.content.ClipboardManager;
-
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -21,32 +15,30 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
 
-import com.bearmod.Floating;
 import com.bearmod.R;
 import com.bearmod.auth.SimpleLicenseVerifier;
+import com.bearmod.loader.utilities.Logx;
+import com.bearmod.PermissionManager;
 
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import android.net.Uri;
-import android.provider.Settings;
+// New modular imports
+import com.bearmod.loader.component.PermissionHandler;
+import com.bearmod.loader.component.NativeInitializer;
+import com.bearmod.loader.component.LicenseVerificationFlow;
 
 /**
  * LoginActivity - KeyAuth license verification UI
- * 
+ * <p>
  * Responsibilities:
  * - Display license key input interface
  * - Handle KeyAuth authentication via SimpleLicenseVerifier
  * - Return RESULT_OK on successful authentication
  * - Return RESULT_CANCELED on back press or authentication failure
- * 
+ * <p>
  * Navigation Flow:
  * SplashActivity → LoginActivity → (returns to SplashActivity) → MainActivity
  */
@@ -54,13 +46,6 @@ public class LoginActivity extends AppCompatActivity {
     private static final String TAG = "LoginActivity";
 
     // UI Components for KeyAuth license verification
-
-    private static final AtomicBoolean isInitializing = new AtomicBoolean(false);
-    private static final Object lockObject = new Object();
-    private static volatile SharedPreferences gifs;
-    // ========================================
-    private static boolean nativeLibraryLoaded = false;
-
     private EditText editLicenseKey;
     private ImageButton buttonCopyPaste;
     private Button buttonLogin;
@@ -69,28 +54,10 @@ public class LoginActivity extends AppCompatActivity {
     private CheckBox checkboxRememberKey;
     private CheckBox checkboxAutoLogin;
 
-    /*
-    void hideesp()
-    {
-        Floating.hideesp();
-    }
+    // New modular components
+    private PermissionHandler permissionHandler;
+    private LicenseVerificationFlow verificationFlow;
 
-    void stopHideesp()
-    {
-        Floating.stopHideesp();
-    }
-
-    static {
-        try {
-            System.loadLibrary("bearmod");
-            nativeLibraryLoaded = true;
-            android.util.Log.d("Launcher", "Native library loaded successfully");
-        } catch (UnsatisfiedLinkError e) {
-            android.util.Log.w("Launcher", "Native library not available: " + e.getMessage());
-            nativeLibraryLoaded = false;
-        }
-    }
-*/
     /**
      * Check if user has valid stored authentication
      * Delegates to SimpleLicenseVerifier for centralized authentication logic
@@ -100,28 +67,112 @@ public class LoginActivity extends AppCompatActivity {
         return SimpleLicenseVerifier.hasValidStoredAuth(context);
     }
 
+    /**
+     * Check and prompt for critical permissions using modular PermissionHandler
+     */
+    private void checkAndPromptPermissions() {
+        if (permissionHandler != null) {
+            permissionHandler.checkAndPromptPermissions(new PermissionHandler.PermissionCallback() {
+                @Override
+                public void onPermissionGranted(String permission) {
+                    Logx.d("All permissions granted: " + permission);
+                }
+
+                @Override
+                public void onPermissionDenied(String permission) {
+                    Logx.w("Permission denied: " + permission);
+                    setResult(RESULT_CANCELED);
+                    finish();
+                }
+
+                @Override
+                public void onPermissionRequestCancelled() {
+                    Logx.d("Permission request cancelled - will retry on resume");
+                }
+            });
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        try {
+            if (permissionHandler != null) {
+                permissionHandler.handlePermissionResult(requestCode, resultCode, data);
+            }
+        } catch (Throwable t) {
+            Logx.w("Permission result handling failed", t);
+        }
+        // Re-check to continue the chain if user granted something
+        checkAndPromptPermissions();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Preflight critical permissions before entering license
+        checkAndPromptPermissions();
+    }
+
+    public static void setNativeLibraryLoaded(boolean nativeLibraryLoaded) {
+        NativeInitializer.setNativeLibraryLoaded(nativeLibraryLoaded);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
+
         try {
             // Configure window for fullscreen experience
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-            
+
             setContentView(R.layout.activity_launcher_login);
             initializeViews();
             setupBackPressedHandler();
-            setupButtonListeners();
-            
+
+            // Initialize modular components
+            initializeModularComponents();
+
             // Load saved license key if remember key is enabled
             loadSavedLicenseKey();
-            
+
         } catch (Exception e) {
-            Log.e(TAG, "Critical error in onCreate", e);
+            Logx.e("LoginActivity initialization error", e);
             setResult(RESULT_CANCELED);
             finish();
         }
+    }
+
+    /**
+     * Initialize modular components
+     */
+    private void initializeModularComponents() {
+        // Initialize PermissionHandler
+        permissionHandler = new PermissionHandler(this, this);
+
+        // Initialize LicenseVerificationFlow
+        verificationFlow = new LicenseVerificationFlow(this, this,
+                editLicenseKey, buttonCopyPaste, buttonLogin,
+                progressBar, statusText);
+
+        // Setup verification flow with callbacks
+        verificationFlow.setupButtonListeners(new LicenseVerificationFlow.VerificationCallback() {
+            @Override
+            public void onVerificationSuccess() {
+                handleVerificationSuccess();
+            }
+
+            @Override
+            public void onVerificationFailed(String error) {
+                handleVerificationFailure(error);
+            }
+
+            @Override
+            public void onVerificationTimeout() {
+                handleVerificationTimeout();
+            }
+        });
     }
 
     private void initializeViews() {
@@ -150,22 +201,65 @@ public class LoginActivity extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, callback);
     }
 
+    /**
+     * Setup button listeners for checkboxes (verification flow handles main buttons)
+     */
     private void setupButtonListeners() {
-        // Copy/Paste button
-        buttonCopyPaste.setOnClickListener(v -> {
-            ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            if (clipboard != null && clipboard.hasPrimaryClip()) {
-                ClipData.Item item = Objects.requireNonNull(clipboard.getPrimaryClip()).getItemAt(0);
-                String pastedText = item.getText().toString();
-                editLicenseKey.setText(pastedText);
-                Toast.makeText(this, "License key pasted from clipboard", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "No text found in clipboard", Toast.LENGTH_SHORT).show();
+        // Remember Key checkbox: persist immediately
+        checkboxRememberKey.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            try {
+                SimpleLicenseVerifier.setRememberKeyPreference(LoginActivity.this, isChecked);
+            } catch (Throwable t) {
+                Logx.w("Remember key preference save failed", t);
             }
         });
 
-        // Login button
-        buttonLogin.setOnClickListener(v -> attemptLicenseVerification());
+        // Auto-login checkbox: persist immediately
+        checkboxAutoLogin.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            try {
+                SimpleLicenseVerifier.saveAutoLoginPreference(LoginActivity.this, isChecked);
+            } catch (Throwable t) {
+                Logx.w("Auto-login preference save failed", t);
+            }
+        });
+    }
+
+    /**
+     * Handle successful license verification
+     */
+    private void handleVerificationSuccess() {
+        // Persist user preferences
+        boolean remember = checkboxRememberKey.isChecked();
+        boolean autoLogin = checkboxAutoLogin.isChecked();
+
+        // Remember Key: set preference first, then save the key
+        SimpleLicenseVerifier.setRememberKeyPreference(LoginActivity.this, remember);
+        if (remember) {
+            SimpleLicenseVerifier.saveLicenseKey(LoginActivity.this, verificationFlow.getCurrentLicenseKey());
+        }
+
+        // Auto-login preference (self-selection)
+        SimpleLicenseVerifier.saveAutoLoginPreference(LoginActivity.this, autoLogin);
+
+        // Return success result to SplashActivity
+        setResult(RESULT_OK);
+        finish();
+    }
+
+    /**
+     * Handle failed license verification
+     */
+    private void handleVerificationFailure(String error) {
+        // Error already handled by LicenseVerificationFlow
+        Logx.w("License verification failed: " + error);
+    }
+
+    /**
+     * Handle verification timeout
+     */
+    private void handleVerificationTimeout() {
+        // Timeout already handled by LicenseVerificationFlow
+        Logx.w("License verification timed out");
     }
 
     private void loadSavedLicenseKey() {
@@ -187,138 +281,32 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     /**
-     * KeyAuth license verification flow: Init → License → Token → Session ID
-     */
-    @SuppressLint("SetTextI18n")
-    private void attemptLicenseVerification() {
-        String licenseKey = editLicenseKey.getText().toString().trim();
-
-        if (licenseKey.isEmpty()) {
-            Toast.makeText(this, "Please enter your license key", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Show loading state
-        setLoadingState(true);
-        statusText.setText("Verifying license with KeyAuth...");
-        statusText.setVisibility(View.VISIBLE);
-
-        // Use KeyAuth license verification flow
-        SimpleLicenseVerifier.verifyLicense(this, licenseKey, new SimpleLicenseVerifier.LicenseCallback() {
-            @Override
-            public void onSuccess(String message) {
-                runOnUiThread(() -> {
-                    setLoadingState(false);
-                    statusText.setText("License verification successful!");
-                    statusText.setTextColor(ContextCompat.getColor(LoginActivity.this, android.R.color.holo_green_light));
-
-                    // Save license key if remember key is checked
-                    if (checkboxRememberKey.isChecked()) {
-                        SimpleLicenseVerifier.saveLicenseKey(LoginActivity.this, licenseKey);
-                    }
-
-                    // Save auto login preference
-                    if (checkboxAutoLogin.isChecked()) {
-                        SimpleLicenseVerifier.saveAutoLoginPreference(LoginActivity.this, true);
-                    }
-
-                    Toast.makeText(LoginActivity.this, "Authentication successful!", Toast.LENGTH_SHORT).show();
-
-                    // Return success result to SplashActivity after short delay
-                    new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                        setResult(RESULT_OK);
-                        finish();
-                    }, 1500);
-                });
-            }
-
-            @Override
-            public void onFailure(String error) {
-                runOnUiThread(() -> {
-                    setLoadingState(false);
-                    statusText.setText("License verification failed: " + error);
-                    statusText.setTextColor(ContextCompat.getColor(LoginActivity.this, android.R.color.holo_red_light));
-                    
-                    Toast.makeText(LoginActivity.this, "Authentication failed: " + error, Toast.LENGTH_LONG).show();
-                });
-            }
-        });
-    }
-
-    /**
-     * Initialize native library and perform system checks
+     * Initialize native library and perform system checks using NativeInitializer
      */
     public static void Init(Object object) {
-        try {
-            if (object == null) return;
-            if (!isInitializing.compareAndSet(false, true)) return;
-
-            synchronized (lockObject) {
-                final Context context = (Context) object;
-                Activity activity = (Activity) object;
-
-                safeInit(context);
-
-                // Check overlay permission
-                if (!Settings.canDrawOverlays(context)) {
-                    Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                            Uri.parse("package:" + context.getPackageName()));
-                    activity.startActivity(intent);
-                }
-
-                try {
-                    gifs = context.getSharedPreferences(context.getPackageName(), Context.MODE_PRIVATE);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    isInitializing.set(false);
-                    return;
-                }
-
-                android.util.Log.d("Launcher", "Native initialization completed");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            isInitializing.set(false);
-        }
+        NativeInitializer.initialize(object);
     }
 
     /**
-     * Safe initialization of native library
+     * Safe initialization of native library using NativeInitializer
      */
     public static void safeInit(Context mContext) {
-        // Do NOT load libraries here; SplashActivity controls load order (bearmod -> mundo)
-        // Only attempt native Init; proceed gracefully if unavailable
-        try {
-            Init(mContext);
-            android.util.Log.d("LoginActivity", "Native Init called successfully");
-        } catch (UnsatisfiedLinkError e) {
-            android.util.Log.w("LoginActivity", "Native Init not available (library not loaded yet) ");
-        } catch (Throwable t) {
-            android.util.Log.w("LoginActivity", "Init call failed", t);
-        }
-    }
-
-    @SuppressLint("SetTextI18n")
-    private void setLoadingState(boolean loading) {
-        if (loading) {
-            progressBar.setVisibility(View.VISIBLE);
-            buttonLogin.setEnabled(false);
-            buttonLogin.setText("Verifying...");
-            editLicenseKey.setEnabled(false);
-            buttonCopyPaste.setEnabled(false);
-        } else {
-            progressBar.setVisibility(View.GONE);
-            buttonLogin.setEnabled(true);
-            buttonLogin.setText("LOGIN");
-            editLicenseKey.setEnabled(true);
-            buttonCopyPaste.setEnabled(true);
-        }
+        NativeInitializer.safeInit(mContext);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Log.d(TAG, "LoginActivity destroyed");
+        Logx.d("LoginActivity destroyed");
+
+        // Clean up verification flow timeout task
+        if (verificationFlow != null) {
+            verificationFlow.clearTimeoutTask();
+        }
+
+        // Clean up modular components
+        permissionHandler = null;
+        verificationFlow = null;
     }
 
     public static native void updateAuthenticationState(String sessionId, String token, String hwid, boolean isValid);

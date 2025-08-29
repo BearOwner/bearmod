@@ -4,7 +4,7 @@
     android:id="@+id/splash_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000">
+    android:background="@color/background">
 
     <!-- Bear logo container for rotation animation -->
     <FrameLayout
@@ -13,6 +13,12 @@
         android:layout_height="120dp"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="140dp">
+
+        <!-- Logo background circle for premium look -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bearmod_logo_circle" />
 
         <ImageView
             android:id="@+id/logo"
@@ -26,7 +32,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:indeterminate="true"
-            android:indeterminateTint="@color/background_glass"
+            android:indeterminateTint="@color/primary"
             style="?android:attr/progressBarStyleHorizontal"
             android:rotation="-90"
             android:background="@android:color/transparent"/>
@@ -41,7 +47,7 @@
         android:layout_centerHorizontal="true"
         android:layout_marginTop="30dp"
         android:text="BEAR-ENGINE"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/premium_text_primary"
         android:textSize="32sp"
         android:textStyle="bold"
         android:alpha="0"
@@ -56,8 +62,8 @@
         android:layout_centerHorizontal="true"
         android:layout_marginTop="16dp"
         android:text="Initializing..."
-        android:textColor="#4CAF50"
+        android:textColor="@color/premium_accent_green"
         android:textSize="16sp"
         android:alpha="0"
         tools:ignore="HardcodedText" />
-</RelativeLayout> 
+</RelativeLayout>

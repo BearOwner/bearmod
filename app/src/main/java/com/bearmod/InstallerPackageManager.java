@@ -11,6 +11,8 @@ import android.os.Environment;
 import android.provider.Settings;
 import android.util.Log;
 import androidx.core.content.FileProvider;
+import androidx.documentfile.provider.DocumentFile;
+import com.bearmod.storage.StorageAccessHelper;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -124,34 +126,44 @@ public class InstallerPackageManager {
      * Check if OBB files are installed for a specific package
      */
     public boolean isObbInstalled(String packageName) {
-        if (packageName == null) {
+        if (packageName == null) return false;
+
+        // Derive expected main OBB name using installed versionCode
+        int versionCode;
+        try {
+            android.content.pm.PackageInfo pi = context.getPackageManager().getPackageInfo(packageName, 0);
+            versionCode = pi.versionCode;
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.d(TAG, "Package not installed for isObbInstalled: " + packageName);
             return false;
         }
-        
-        File obbDir = getObbDirectory(packageName);
-        if (!obbDir.exists()) {
-            Log.d(TAG, "OBB directory does not exist: " + obbDir.getAbsolutePath());
-            return false;
+        String expected = "main." + versionCode + "." + packageName + ".obb";
+
+        // API < 30: we can read directly from external storage path
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            File obbFile = new File(getObbDirectory(packageName), expected);
+            boolean present = obbFile.exists() && obbFile.isFile() && obbFile.length() > 0;
+            Log.d(TAG, "OBB check (legacy FS) " + expected + " present=" + present);
+            return present;
         }
-        
-        // Check for OBB files
-        File[] obbFiles = obbDir.listFiles((dir, name) -> {
-            String lowerName = name.toLowerCase();
-            for (String ext : OBB_EXTENSIONS) {
-                if (lowerName.endsWith(ext)) {
+
+        // API >= 30: prefer SAF read-only verification if user granted tree
+        DocumentFile obbDir = StorageAccessHelper.getObbDir(context, packageName);
+        if (obbDir != null) {
+            for (DocumentFile f : obbDir.listFiles()) {
+                String name = f.getName();
+                if (name != null && name.equals(expected)) {
+                    Log.d(TAG, "OBB present via SAF: " + expected + ", size=" + f.length());
                     return true;
                 }
             }
-            return false;
-        });
-        
-        if (obbFiles == null || obbFiles.length == 0) {
-            Log.d(TAG, "No OBB files found in: " + obbDir.getAbsolutePath());
+            Log.d(TAG, "OBB not found via SAF for expected: " + expected);
             return false;
         }
-        
-        // Validate OBB files
-        return validateObbFiles(obbFiles, packageName);
+
+        // No SAF access persisted; cannot reliably verify on Android 11+
+        Log.d(TAG, "No SAF access for OBB dir; treating as not installed (expected= " + expected + ")");
+        return false;
     }
     
     /**

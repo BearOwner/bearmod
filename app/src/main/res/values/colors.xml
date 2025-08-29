@@ -13,13 +13,13 @@
     <color name="accent_success">#30D158</color> <!-- iOS Green -->
     
     <!-- Background Colors - iOS Dark Style -->
-    <color name="background_primary">#1C1C1E</color> <!-- iOS Dark Primary -->
+    <color name="background_primary">#0B1220</color> <!-- Modern Dark Blue Primary -->
     <color name="background_secondary">#2C2C2E</color> <!-- iOS Dark Secondary -->
     <color name="background_surface">#2C2C2E</color> <!-- iOS Card Surface -->
     <color name="background_surface_light">#3A3A3C</color> <!-- iOS Elevated Surface -->
     <color name="background_surface_elevated">#3A3A3C</color> <!-- iOS Modal Background -->
     <color name="background_glass">#1C1C1E99</color> <!-- iOS Glassmorphism -->
-    <color name="background">#131522</color>
+    <color name="background">#0B1220</color>
     <color name="background2">#BE131522</color>
     
     <!-- Text Colors - iOS High Contrast -->

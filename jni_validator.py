@@ -12,6 +12,15 @@ from typing import Dict, List, Tuple
 from dataclasses import dataclass
 from pathlib import Path
 
+# Ensure stdout uses UTF-8 and won't crash on Windows cp1252 consoles
+try:
+    import io
+    if hasattr(sys.stdout, "buffer"):
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+except Exception:
+    # If anything goes wrong, continue; we'll also avoid non-ASCII below
+    pass
+
 @dataclass
 class JNIMethod:
     """Represents a JNI method declaration or implementation"""
@@ -296,11 +305,7 @@ class JNIValidator:
             report.append("MISSING IMPLEMENTATIONS:")
             report.append("-" * 50)
             for missing in analysis.missing_implementations:
-                # Use ASCII fallback for environments that can't print Unicode
-                try:
-                    report.append(f"  ❌ {missing}")
-                except Exception:
-                    report.append(f"  [X] {missing}")
+                report.append(f"  [X] {missing}")
                 if missing in analysis.declared_methods:
                     method = analysis.declared_methods[missing]
                     expected_jni = self._java_to_jni_function_name(missing)
@@ -358,10 +363,10 @@ def main():
     
     # Exit with error code if there are issues
     if analysis.missing_implementations:
-        print(f"\n❌ Found {len(analysis.missing_implementations)} missing JNI implementations")
+        print(f"\nERROR: Found {len(analysis.missing_implementations)} missing JNI implementations")
         sys.exit(1)
     else:
-        print("\n[SUCCESS] All JNI methods have implementations")
+        print("\nSUCCESS: All JNI methods have implementations")
         sys.exit(0)
 
 if __name__ == "__main__":

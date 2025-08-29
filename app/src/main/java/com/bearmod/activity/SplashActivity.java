@@ -8,6 +8,9 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -27,23 +30,25 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.WindowCompat;
 
 import com.bearmod.R;
-import com.bearmod.AntiDetectionManager;
+import com.bearmod.security.AntiDetectionManager;
 import com.bearmod.BuildConfig;
-import com.bearmod.util.NativeUtils;
+import com.bearmod.loader.utilities.NativeUtils;
 import com.bearmod.bridge.NativeLib;
+import com.bearmod.loader.utilities.Logx;
 
 /**
  * SplashActivity - Initial app launch and loading screen
- * 
+ * <p>
  * Responsibilities:
  * - Show animated splash screen with BearMod branding
  * - Load native library and perform system checks
  * - Anti-detection and security validation
  * - Navigate to LoginActivity if no valid license, or MainActivity if authenticated
- * 
+ * <p>
  * Navigation Flow:
  * SplashActivity → LoginActivity (if needed) → MainActivity
  */
+@SuppressLint("CustomSplashScreen")
 public class SplashActivity extends AppCompatActivity {
     private static final String TAG = "SplashActivity";
     
@@ -56,6 +61,14 @@ public class SplashActivity extends AppCompatActivity {
     // Animation and state management
     private AnimatorSet currentAnimation;
     private boolean isInitializing = false;
+    // Navigation race guard: ensures we only navigate once (Login OR Main)
+    private boolean hasNavigated = false;
+    // Main-thread scheduler for time-based UI tasks (timeouts, delayed nav)
+    private final Handler watchdog = new Handler(Looper.getMainLooper());
+    // Auto-login timeout task: if auth takes too long, we fall back to Login
+    private Runnable authTimeoutTask;
+    // Deferred navigation to Login, kept as a field so we can cancel it on success
+    private Runnable navigateToLoginTask;
     
     // Anti-detection manager
     private AntiDetectionManager antiDetectionManager;
@@ -67,6 +80,9 @@ public class SplashActivity extends AppCompatActivity {
                         if (result.getResultCode() == RESULT_OK) {
                             // Login successful - navigate to MainActivity
                             Log.d(TAG, "Login successful - navigating to MainActivity");
+                            // Ensure no pending tasks can relaunch Login after success
+                            cancelAuthTimeoutWatchdog();
+                            cancelLoginNavigateTask();
                             navigateToMainActivity();
                         } else {
                             // Login failed or cancelled - exit app
@@ -87,22 +103,17 @@ public class SplashActivity extends AppCompatActivity {
             setContentView(R.layout.activity_splash);
             initializeViews();
             
-            // Initialize anti-detection manager
-            antiDetectionManager = new AntiDetectionManager(this);
+            // Initialize anti-detection manager (singleton)
+            antiDetectionManager = AntiDetectionManager.getInstance(this);
 
             // Load native library (bearmod). Mundo loading is deferred to future container/runtime.
             loadNativeLibrary();
-
-            // NOTE: Temporarily disable calling native Init to isolate crash source.
-            // If crash still occurs right after loadNativeLibrary(), issue is likely in JNI_OnLoad or static C++ init.
-            // TODO(re-enable): Re-introduce LoginActivity.safeInit(context) once native init is confirmed safe.
-            Log.d(TAG, "Skipping LoginActivity.safeInit() temporarily for crash isolation");
 
             // Start initialization sequence
             startInitializationSequence();
             
         } catch (Exception e) {
-            Log.e(TAG, "Critical error in onCreate", e);
+            Logx.e("SPL_ONCREATE_ERR", e);
             showErrorAndExit("Startup Error", "Failed to initialize BearMod: " + e.getMessage());
         }
     }
@@ -170,7 +181,7 @@ public class SplashActivity extends AppCompatActivity {
         animatorSet.addListener(new Animator.AnimatorListener() {
             @Override
             public void onAnimationStart(@NonNull Animator animation) {
-                status.setText("Initializing BearMod...");
+                status.setText("Initializing...");
             }
 
             @Override
@@ -200,16 +211,17 @@ public class SplashActivity extends AppCompatActivity {
     private void initializeSystem() {
         try {
             // Step 1: Initialize native core (local readiness; MundoCore removed for now)
-            status.setText("Initializing native core...");
+            status.setText("Initializing core...");
             
             // Step 2: Perform anti-detection checks
-            status.setText("Performing security checks...");
+            status.setText("Checking security...");
             if (!performSecurityChecks()) {
                 return; // Security check failed, app will exit
             }
             
             // Step 3: Check authentication status
-            status.setText("Checking authentication...");
+            Logx.d("SPL_AUTH_CHECK");
+            status.setText("Checking auth...");
             checkAuthenticationAndNavigate();
             
         } catch (Exception e) {
@@ -221,22 +233,30 @@ public class SplashActivity extends AppCompatActivity {
     private void loadNativeLibrary() {
         try {
             System.loadLibrary("bearmod");
-            Log.d(TAG, "Native library loaded successfully");
+            Logx.d("SPL_LOAD_OK");
             NativeUtils.setNativeLoaded(true);
 
             // Perform native registrations in the correct App ClassLoader context
             try {
                 NativeLib.initialize(getApplicationContext());
-                Log.d(TAG, "NativeLib.initialize executed successfully");
+                Logx.d("SPL_INIT_OK");
+                // Register natives using Class objects to avoid FindClass on string names
+                try {
+                    // Use new modular service approach for native registration
+                    NativeLib.registerNatives(com.bearmod.loader.floating.FloatService.class, com.bearmod.activity.LoginActivity.class, com.bearmod.bridge.NativeLib.class);
+                    Logx.d("SPL_REG_OK");
+                } catch (Throwable regErr) {
+                    Logx.w("SPL_REG_FAIL");
+                }
             } catch (Throwable initErr) {
-                Log.w(TAG, "Native init failed (continuing in limited mode): " + initErr.getMessage());
+                Logx.w("SPL_NATIVE_INIT_FAIL");
             }
         } catch (UnsatisfiedLinkError e) {
-            Log.w(TAG, "Failed to load native library: " + e.getMessage());
+            Logx.w("SPL_LOAD_FAIL");
             // Continue anyway - app can work in demo mode
             NativeUtils.setNativeLoaded(false);
         } catch (Exception e) {
-            Log.e(TAG, "Unexpected error loading native library: " + e.getMessage());
+            Logx.e("SPL_UNEXPECTED", e);
             // Continue anyway - app can work in demo mode
             NativeUtils.setNativeLoaded(false);
         }
@@ -256,7 +276,7 @@ public class SplashActivity extends AppCompatActivity {
         
         for (String packageName : suspiciousPackages) {
             if (isAppInstalled(this, packageName)) {
-                Log.w(TAG, "Suspicious package detected: " + packageName);
+                Logx.w("SPL_SEC_ALERT");
                 showErrorAndExit("Security Alert", 
                     "Please remove debugging/hooking tools and restart the app.");
                 return false;
@@ -275,50 +295,118 @@ public class SplashActivity extends AppCompatActivity {
     @SuppressLint("SetTextI18n")
     private void checkAuthenticationAndNavigate() {
         // Check if user has valid stored authentication
-        if (LoginActivity.hasValidKey(this) && com.bearmod.auth.SimpleLicenseVerifier.isAutoLoginEnabled(this)) {
-            Log.d(TAG, "Stored authentication found and auto-login enabled - attempting validation");
-            status.setText("Validating stored authentication...");
-
-            // Attempt auto-login with stored session/token
-            com.bearmod.auth.SimpleLicenseVerifier.autoLogin(this, new com.bearmod.auth.SimpleLicenseVerifier.AuthCallback() {
-                @Override
-                public void onSuccess(String message) {
-                    runOnUiThread(() -> {
-                        Log.d(TAG, "Auto-login successful - navigating to MainActivity");
-                        status.setText("Authentication verified!");
-
-                        // Navigate to MainActivity after short delay
-                        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                            navigateToMainActivity();
-                        }, 1000);
-                    });
+        try {
+            if (com.bearmod.auth.SimpleLicenseVerifier.hasValidStoredAuth(this) && com.bearmod.auth.SimpleLicenseVerifier.isAutoLoginEnabled(this)) {
+                status.setText("Validating stored authentication...");
+                // If offline, skip auto-login and go to Login gracefully
+                if (!isNetworkAvailable()) {
+                    status.setText("Offline - please login");
+                    safeNavigateToLoginDelayed(500);
+                    return;
                 }
 
-                @Override
-                public void onError(String error) {
-                    runOnUiThread(() -> {
-                        Log.d(TAG, "Auto-login failed: " + error + " - navigating to LoginActivity");
-                        status.setText("Authentication required...");
+                // Start a timeout watchdog to avoid getting stuck
+                startAuthTimeoutWatchdog();
 
-                        // Navigate to LoginActivity after short delay
-                        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                            navigateToLoginActivity();
-                        }, 1000);
-                    });
-                }
-            });
-        } else {
-            Log.d(TAG, "No stored authentication - navigating to LoginActivity");
+                // Attempt auto-login with stored session/token
+                com.bearmod.auth.SimpleLicenseVerifier.autoLogin(this, new com.bearmod.auth.SimpleLicenseVerifier.AuthCallback() {
+                    @Override
+                    public void onSuccess(String message) {
+                        runOnUiThread(() -> {
+                            cancelAuthTimeoutWatchdog();
+                            cancelLoginNavigateTask();
+                            Logx.d("SPL_AUTH_OK");
+                            status.setText("Authentication verified!");
+
+                            // Navigate to MainActivity after short delay
+                            watchdog.postDelayed(() -> navigateMainSafe(), 600);
+                        });
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        runOnUiThread(() -> {
+                            cancelAuthTimeoutWatchdog();
+                            Logx.d("SPL_AUTH_FAIL");
+                            status.setText("Authentication required...");
+
+                            // Navigate to LoginActivity after short delay
+                            safeNavigateToLoginDelayed(800);
+                        });
+                    }
+                });
+            } else {
+                Logx.d("SPL_NO_AUTH");
+                status.setText("Authentication required...");
+
+                // Navigate to LoginActivity after short delay
+                safeNavigateToLoginDelayed(800);
+            }
+        } catch (Exception e) {
+            Logx.d("SPL_NO_AUTH");
             status.setText("Authentication required...");
 
             // Navigate to LoginActivity after short delay
-            new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                navigateToLoginActivity();
-            }, 1000);
+            safeNavigateToLoginDelayed(800);
         }
+    }
+
+    private void startAuthTimeoutWatchdog() {
+        cancelAuthTimeoutWatchdog();
+        authTimeoutTask = () -> {
+            if (hasNavigated) return;
+            Log.w(TAG, "Auto-login timeout reached; navigating to LoginActivity");
+            status.setText("Authentication timeout - please login");
+            safeNavigateToLoginDelayed(0);
+        };
+        watchdog.postDelayed(authTimeoutTask, 12_000); // 12s timeout
+    }
+
+    private void cancelAuthTimeoutWatchdog() {
+        if (authTimeoutTask != null) {
+            watchdog.removeCallbacks(authTimeoutTask);
+            authTimeoutTask = null;
+        }
+    }
+
+    private void cancelLoginNavigateTask() {
+        if (navigateToLoginTask != null) {
+            watchdog.removeCallbacks(navigateToLoginTask);
+            navigateToLoginTask = null;
+        }
+    }
+
+    private boolean isNetworkAvailable() {
+        try {
+            ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm == null) return false;
+            Network network = cm.getActiveNetwork();
+            if (network == null) return false;
+            NetworkCapabilities caps = cm.getNetworkCapabilities(network);
+            return caps != null && (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+                    || caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
+                    || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET));
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private void safeNavigateToLoginDelayed(long delayMs) {
+        if (hasNavigated) return;
+        navigateToLoginTask = this::navigateToLoginActivity;
+        watchdog.postDelayed(navigateToLoginTask, delayMs);
+    }
+
+    private void navigateMainSafe() {
+        if (hasNavigated) return;
+        cancelLoginNavigateTask();
+        hasNavigated = true;
+        navigateToMainActivity();
     }
     
     private void navigateToLoginActivity() {
+        if (hasNavigated) return;
+        hasNavigated = true;
         Intent loginIntent = new Intent(this, LoginActivity.class);
         loginLauncher.launch(loginIntent);
     }
@@ -363,5 +451,7 @@ public class SplashActivity extends AppCompatActivity {
             currentAnimation.cancel();
         }
         isInitializing = false;
+        cancelAuthTimeoutWatchdog();
+        cancelLoginNavigateTask();
     }
 }

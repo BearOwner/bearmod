@@ -1,0 +1,33 @@
+# AI Architecture Check Allowlist
+# Temporary suppressions for known large/complex classes. Track refactors and remove entries once addressed.
+# Pattern syntax: glob paths relative to repo root. Both / and \ are accepted.
+
+app/src/main/java/**/AdvancedAnimations.java
+app/src/main/java/**/FileHashCalculator.java
+app/src/main/java/**/FileUtil.java
+app/src/main/java/**/Floating.java
+app/src/main/java/**/InstallerPackageManager.java
+app/src/main/java/**/RecorderFakeUtils.java
+app/src/main/java/**/TargetAppManager.java
+app/src/main/java/**/activity/LoginActivity.java
+app/src/main/java/**/activity/MainActivity.java
+app/src/main/java/**/activity/SplashActivity.java
+app/src/main/java/**/auth/SimpleLicenseVerifier.java
+app/src/main/java/**/injection/HybridInjectionManager.java
+app/src/main/java/**/patch/AutoPatchManager.java
+app/src/main/java/**/patch/FridaPatchManager.java
+app/src/main/java/**/patch/JSEnginePatchManager.java
+app/src/main/java/**/patch/NonRootPatchManager.java
+app/src/main/java/**/patch/injection/HybridInjectionManager.java
+app/src/main/java/**/plugin/PluginLoader.java
+app/src/main/java/**/security/AntiDetectionManager.java
+app/src/main/java/**/security/DataClearingManager.java
+app/src/main/java/**/security/IdleDetectionManager.java
+
+# Loader components and floating UI modules (temporary while modularization is underway)
+app/src/main/java/**/loader/component/*.java
+app/src/main/java/**/loader/component/**/*.java
+app/src/main/java/**/loader/floating/*.java
+app/src/main/java/**/loader/floating/**/*.java
+app/src/main/java/**/loader/server/SimpleLicenseVerifier.java
+app/src/main/java/**/loader/component/ota/OtaManager.java
