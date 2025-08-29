@@ -23,3 +23,11 @@ app/src/main/java/**/plugin/PluginLoader.java
 app/src/main/java/**/security/AntiDetectionManager.java
 app/src/main/java/**/security/DataClearingManager.java
 app/src/main/java/**/security/IdleDetectionManager.java
+
+# Loader components and floating UI modules (temporary while modularization is underway)
+app/src/main/java/**/loader/component/*.java
+app/src/main/java/**/loader/component/**/*.java
+app/src/main/java/**/loader/floating/*.java
+app/src/main/java/**/loader/floating/**/*.java
+app/src/main/java/**/loader/server/SimpleLicenseVerifier.java
+app/src/main/java/**/loader/component/ota/OtaManager.java
