@@ -4,7 +4,7 @@ import android.app.Application;
 import android.util.Log;
 
 import com.bearmod.bridge.NativeLib;
-import com.bearmod.util.NativeUtils;
+import com.bearmod.loader.utilities.NativeUtils;
 
 import timber.log.Timber;
 

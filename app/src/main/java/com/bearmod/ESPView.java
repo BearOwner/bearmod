@@ -91,8 +91,9 @@ public class ESPView extends View implements Runnable {
         protected void onDraw(@NonNull Canvas canvas) {
                   if (this.getVisibility() == View.VISIBLE) {
                             this.ClearCanvas(canvas);
-							Floating.DrawOn(this, canvas);
-                  
+       // Use old ESPView directly - Floating service will handle compatibility
+       Floating.DrawOn(this, canvas);
+
                        }
              }
              

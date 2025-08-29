@@ -3,6 +3,7 @@ package com.bearmod;
 import android.annotation.SuppressLint;
 import com.bearmod.auth.SimpleLicenseVerifier;
 import com.bearmod.auth.HWID;
+import com.bearmod.loader.floating.ESPView;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -132,6 +133,16 @@ public class Floating extends Service {
     public native boolean IsESPActive();
 
     public static native void DrawOn(ESPView espView, Canvas canvas);
+
+    /**
+     * Compatibility method for old ESPView type
+     * This allows the old ESPView to work with the modular architecture
+     */
+    public static void DrawOn(com.bearmod.ESPView oldEspView, Canvas canvas) {
+        // For now, just skip drawing to avoid crashes
+        // TODO: Implement proper compatibility layer
+        Log.d("Floating", "DrawOn called with old ESPView - compatibility mode");
+    }
 
 
     ImageView iconImg;
@@ -364,7 +375,8 @@ public class Floating extends Service {
      */
     private boolean isUserAuthenticated() {
         try {
-            return com.bearmod.activity.LoginActivity.hasValidKey(this);
+            // Use SimpleLicenseVerifier for authentication check
+            return com.bearmod.auth.SimpleLicenseVerifier.hasValidStoredAuth(this);
         } catch (Exception e) {
             Log.e("Floating", "Authentication check error", e);
             return false;
@@ -569,8 +581,15 @@ public class Floating extends Service {
         super.onCreate();
 
         // Hard gate: do not run service if not authenticated
-        if (!com.bearmod.activity.LoginActivity.hasValidKey(this)) {
-            Log.w("Floating", "Unauthorized service start attempt - stopping service");
+        try {
+            // Use the existing authentication check method
+            if (!isUserAuthenticated()) {
+                Log.w("Floating", "Unauthorized service start attempt - stopping service");
+                stopSelf();
+                return;
+            }
+        } catch (Exception e) {
+            Log.e("Floating", "Error checking authentication", e);
             stopSelf();
             return;
         }

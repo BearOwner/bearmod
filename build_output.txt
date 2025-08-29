@@ -1,0 +1,532 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Reusing configuration cache.
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:dataBindingMergeDependencyArtifactsDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:dataBindingGenBaseClassesDebug UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:kaptGenerateStubsDebugKotlin UP-TO-DATE
+> Task :app:kaptDebugKotlin SKIPPED
+> Task :app:compileDebugKotlin UP-TO-DATE
+
+> Task :app:compileDebugJavaWithJavac
+D:\injector\bearmod\app\src\main\java\com\bearmod\activity\MainActivity.java:1082: error: incompatible types: MainActivity cannot be converted to ResourceProvider
+                new com.bearmod.loader.component.PermissionDelegate(this);
+                                                                    ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:48: error: constructor AuthUI in class AuthUI cannot be applied to given types;
+        this.authUI = new AuthUI(activity, rootView);
+                      ^
+  required: ResourceProvider
+  found:    AppCompatActivity,View
+  reason: actual and formal argument lists differ in length
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:49: error: constructor SessionHandler in class SessionHandler cannot be applied to given types;
+        this.sessionHandler = new SessionHandler(activity);
+                              ^
+  required: ResourceProvider,SessionManager
+  found:    AppCompatActivity
+  reason: actual and formal argument lists differ in length
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:50: error: incompatible types: AppCompatActivity cannot be converted to ResourceProvider
+        this.loginManager = new LoginManager(activity);
+                                             ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:63: error: cannot find symbol
+        authUI.setUICallback(new AuthUI.UICallback() {
+                                       ^
+  symbol:   class UICallback
+  location: class AuthUI
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:64: error: method does not override or implement a method from a supertype
+            @Override
+            ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:69: error: method does not override or implement a method from a supertype
+            @Override
+            ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:114: error: method showStatus in class AuthUI cannot be applied to given types;
+        authUI.showStatus("Verifying license with KeyAuth...");
+              ^
+  required: String,boolean
+  found:    String
+  reason: actual and formal argument lists differ in length
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:117: error: <anonymous com.bearmod.loader.component.LoginFacade$3> is not abstract and does not override abstract method onVerificationTimeout() in LoginCallback
+        loginManager.attemptLicenseVerification(licenseKey, new LoginManager.LoginCallback() {
+                                                                                             ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:118: error: method does not override or implement a method from a supertype
+            @Override
+            ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:123: error: method does not override or implement a method from a supertype
+            @Override
+            ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:128: error: method does not override or implement a method from a supertype
+            @Override
+            ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:117: error: method attemptLicenseVerification in class LoginManager cannot be applied to given types;
+        loginManager.attemptLicenseVerification(licenseKey, new LoginManager.LoginCallback() {
+                    ^
+  required: String
+  found:    String,<anonymous LoginCallback>
+  reason: actual and formal argument lists differ in length
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\AuthUI.java:76: error: package R does not exist
+            editLicenseKey = rootView.findViewById(R.id.edit_license_key);
+                                                    ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\AuthUI.java:77: error: package R does not exist
+            buttonCopyPaste = rootView.findViewById(R.id.button_copy_paste);
+                                                     ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\AuthUI.java:78: error: package R does not exist
+            buttonLogin = rootView.findViewById(R.id.button_login);
+                                                 ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\AuthUI.java:79: error: package R does not exist
+            progressBar = rootView.findViewById(R.id.progress_bar);
+                                                 ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\AuthUI.java:80: error: package R does not exist
+            statusText = rootView.findViewById(R.id.status_text);
+                                                ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\AuthUI.java:81: error: package R does not exist
+            checkboxRememberKey = rootView.findViewById(R.id.checkbox_remember_key);
+                                                         ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\AuthUI.java:82: error: package R does not exist
+            checkboxAutoLogin = rootView.findViewById(R.id.checkbox_auto_login);
+                                                       ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\SessionHandler.java:99: error: cannot find symbol
+            boolean rememberEnabled = sessionManager.isRememberKeyEnabled();
+                                                    ^
+  symbol:   method isRememberKeyEnabled()
+  location: variable sessionManager of type SessionManager
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\SessionHandler.java:100: error: cannot find symbol
+            boolean autoLoginEnabled = sessionManager.isAutoLoginEnabled();
+                                                     ^
+  symbol:   method isAutoLoginEnabled()
+  location: variable sessionManager of type SessionManager
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\SessionHandler.java:103: error: cannot find symbol
+                savedKey = sessionManager.getSavedLicenseKey();
+                                         ^
+  symbol:   method getSavedLicenseKey()
+  location: variable sessionManager of type SessionManager
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\SessionHandler.java:234: error: cannot find symbol
+                sessionManager.saveLicenseKey(currentLicenseKey, true);
+                              ^
+  symbol:   method saveLicenseKey(String,boolean)
+  location: variable sessionManager of type SessionManager
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\SessionHandler.java:238: error: cannot find symbol
+            sessionManager.saveAutoLoginPreference(autoLogin);
+                          ^
+  symbol:   method saveAutoLoginPreference(boolean)
+  location: variable sessionManager of type SessionManager
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\SessionHandler.java:324: error: cannot find symbol
+            return sessionManager.hasValidStoredAuth();
+                                 ^
+  symbol:   method hasValidStoredAuth()
+  location: variable sessionManager of type SessionManager
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\SessionManager.java:130: error: cannot find symbol
+            return com.bearmod.loader.server.SimpleLicenseVerifier.validateLicense(licenseKey);
+                                                                  ^
+  symbol:   method validateLicense(String)
+  location: class SimpleLicenseVerifier
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\SessionManager.java:146: error: cannot find symbol
+            boolean isValid = com.bearmod.loader.server.SimpleLicenseVerifier.validateLicense(licenseKey);
+                                                                             ^
+  symbol:   method validateLicense(String)
+  location: class SimpleLicenseVerifier
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\SessionManager.java:150: error: cannot find symbol
+                String userId = com.bearmod.loader.server.SimpleLicenseVerifier.getUserId(licenseKey);
+                                                                               ^
+  symbol:   method getUserId(String)
+  location: class SimpleLicenseVerifier
+D:\injector\bearmod\app\src\main\java\com\bearmod\ESPView.java:94: error: incompatible types: com.bearmod.ESPView cannot be converted to com.bearmod.loader.floating.ESPView
+							Floating.DrawOn(this, canvas);
+							                ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\PermissionDelegate.java:76: error: cannot find symbol
+        overlayPermissionLauncher = activity.registerForActivityResult(
+                                            ^
+  symbol:   method registerForActivityResult(StartActivityForResult,(result)->[...]d); })
+  location: variable activity of type Activity
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\PermissionDelegate.java:84: error: cannot find symbol
+        unknownSourcesPermissionLauncher = activity.registerForActivityResult(
+                                                   ^
+  symbol:   method registerForActivityResult(StartActivityForResult,(result)->[...])); })
+  location: variable activity of type Activity
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\PermissionDelegate.java:92: error: cannot find symbol
+        storagePermissionLauncher = activity.registerForActivityResult(
+                                            ^
+  symbol:   method registerForActivityResult(RequestMultiplePermissions,(result)->[...]d); })
+  location: variable activity of type Activity
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:97: error: package R does not exist
+            serviceStatus = rootView.findViewById(R.id.service_status);
+                                                   ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:98: error: package R does not exist
+            startButton = rootView.findViewById(R.id.start_button);
+                                                 ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:99: error: package R does not exist
+            stopButton = rootView.findViewById(R.id.stop_button);
+                                                ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:100: error: package R does not exist
+            exitButton = rootView.findViewById(R.id.exit_button);
+                                                ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:103: error: package R does not exist
+            targetBundleSpinner = rootView.findViewById(R.id.target_bundle_spinner);
+                                                         ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:104: error: package R does not exist
+            targetStatusText = rootView.findViewById(R.id.target_status_text);
+                                                      ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:107: error: package R does not exist
+            textGameName = rootView.findViewById(R.id.text_game_name);
+                                                  ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:108: error: package R does not exist
+            textGameVersion = rootView.findViewById(R.id.text_game_version);
+                                                     ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:109: error: package R does not exist
+            textObbStatus = rootView.findViewById(R.id.text_obb_status);
+                                                   ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:110: error: package R does not exist
+            btnFixObb = rootView.findViewById(R.id.btn_fix_obb);
+                                               ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:113: error: package R does not exist
+            regionGlobal = rootView.findViewById(R.id.region_global);
+                                                  ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:114: error: package R does not exist
+            regionKorea = rootView.findViewById(R.id.region_korea);
+                                                 ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:115: error: package R does not exist
+            regionVietnam = rootView.findViewById(R.id.region_vietnam);
+                                                   ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:116: error: package R does not exist
+            regionTaiwan = rootView.findViewById(R.id.region_taiwan);
+                                                  ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:117: error: package R does not exist
+            regionIndia = rootView.findViewById(R.id.region_india);
+                                                 ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:120: error: package R does not exist
+            serverStatus = rootView.findViewById(R.id.server_status);
+                                                  ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:121: error: package R does not exist
+            detectionStatusIcon = rootView.findViewById(R.id.detection_status_icon);
+                                                         ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:122: error: package R does not exist
+            safeStatus = rootView.findViewById(R.id.safe_status);
+                                                ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:123: error: package R does not exist
+            unsafeStatus = rootView.findViewById(R.id.unsafe_status);
+                                                  ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:126: error: package R does not exist
+            navHome = rootView.findViewById(R.id.nav_home);
+                                             ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:127: error: package R does not exist
+            navSettings = rootView.findViewById(R.id.nav_settings);
+                                                 ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:128: error: package R does not exist
+            mainAppLayout = rootView.findViewById(R.id.main_app_layout);
+                                                   ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:129: error: package R does not exist
+            settingsLayout = rootView.findViewById(R.id.settings_layout);
+                                                    ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:132: error: package R does not exist
+            switchAutoClear = rootView.findViewById(R.id.switch_auto_clear);
+                                                     ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:133: error: package R does not exist
+            switchFastDownload = rootView.findViewById(R.id.switch_fast_download);
+                                                        ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:134: error: package R does not exist
+            btnClearDataNow = rootView.findViewById(R.id.btn_clear_data_now);
+                                                     ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:135: error: package R does not exist
+            btnExitApp = rootView.findViewById(R.id.btn_exit_app);
+                                                ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:382: error: package R does not exist
+                    textObbStatus.setTextColor(ContextCompat.getColor(context, R.color.premium_text_secondary));
+                                                                                ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:385: error: package R does not exist
+                    textObbStatus.setTextColor(ContextCompat.getColor(context, R.color.premium_accent_green));
+                                                                                ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:388: error: package R does not exist
+                    textObbStatus.setTextColor(ContextCompat.getColor(context, R.color.premium_accent_red));
+                                                                                ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:429: error: package R does not exist
+                detectionStatusIcon.setImageResource(isDetected ? R.drawable.ic_check_circle : R.drawable.ic_error);
+                                                                   ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:429: error: package R does not exist
+                detectionStatusIcon.setImageResource(isDetected ? R.drawable.ic_check_circle : R.drawable.ic_error);
+                                                                                                ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:431: error: package R does not exist
+                    isDetected ? R.color.premium_accent_green : R.color.premium_accent_red));
+                                  ^
+D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:431: error: package R does not exist
+                    isDetected ? R.color.premium_accent_green : R.color.premium_accent_red));
+                                                                 ^
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output
+67 errors
+
+> Task :app:compileDebugJavaWithJavac FAILED
+
+[Incubating] Problems report is available at: file:///D:/injector/bearmod/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugJavaWithJavac'.
+> Compilation failed; see the compiler output below.
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:48: error: constructor AuthUI in class AuthUI cannot be applied to given types;
+          this.authUI = new AuthUI(activity, rootView);
+                        ^
+    required: ResourceProvider
+    found:    AppCompatActivity,View
+    reason: actual and formal argument lists differ in length
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:49: error: constructor SessionHandler in class SessionHandler cannot be applied to given types;
+          this.sessionHandler = new SessionHandler(activity);
+                                ^
+    required: ResourceProvider,SessionManager
+    found:    AppCompatActivity
+    reason: actual and formal argument lists differ in length
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:114: error: method showStatus in class AuthUI cannot be applied to given types;
+          authUI.showStatus("Verifying license with KeyAuth...");
+                ^
+    required: String,boolean
+    found:    String
+    reason: actual and formal argument lists differ in length
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:117: error: method attemptLicenseVerification in class LoginManager cannot be applied to given types;
+          loginManager.attemptLicenseVerification(licenseKey, new LoginManager.LoginCallback() {
+                      ^
+    required: String
+    found:    String,<anonymous LoginCallback>
+    reason: actual and formal argument lists differ in length
+  Note: Recompile with -Xlint:deprecation for details.
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:117: error: <anonymous com.bearmod.loader.component.LoginFacade$3> is not abstract and does not override abstract method onVerificationTimeout() in LoginCallback
+          loginManager.attemptLicenseVerification(licenseKey, new LoginManager.LoginCallback() {
+                                                                                               ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\activity\MainActivity.java:1082: error: incompatible types: MainActivity cannot be converted to ResourceProvider
+                  new com.bearmod.loader.component.PermissionDelegate(this);
+                                                                      ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:50: error: incompatible types: AppCompatActivity cannot be converted to ResourceProvider
+          this.loginManager = new LoginManager(activity);
+                                               ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\ESPView.java:94: error: incompatible types: com.bearmod.ESPView cannot be converted to com.bearmod.loader.floating.ESPView
+  							Floating.DrawOn(this, canvas);
+  							                ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:63: error: cannot find symbol
+          authUI.setUICallback(new AuthUI.UICallback() {
+                                         ^
+    symbol:   class UICallback
+    location: class AuthUI
+  Note: Some input files use or override a deprecated API.
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:64: error: method does not override or implement a method from a supertype
+              @Override
+              ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:69: error: method does not override or implement a method from a supertype
+              @Override
+              ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:118: error: method does not override or implement a method from a supertype
+              @Override
+              ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:123: error: method does not override or implement a method from a supertype
+              @Override
+              ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\LoginFacade.java:128: error: method does not override or implement a method from a supertype
+              @Override
+              ^
+  Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\SessionHandler.java:99: error: cannot find symbol
+              boolean rememberEnabled = sessionManager.isRememberKeyEnabled();
+                                                      ^
+    symbol:   method isRememberKeyEnabled()
+    location: variable sessionManager of type SessionManager
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\SessionHandler.java:100: error: cannot find symbol
+              boolean autoLoginEnabled = sessionManager.isAutoLoginEnabled();
+                                                       ^
+    symbol:   method isAutoLoginEnabled()
+    location: variable sessionManager of type SessionManager
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\SessionHandler.java:103: error: cannot find symbol
+                  savedKey = sessionManager.getSavedLicenseKey();
+                                           ^
+    symbol:   method getSavedLicenseKey()
+    location: variable sessionManager of type SessionManager
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\SessionHandler.java:234: error: cannot find symbol
+                  sessionManager.saveLicenseKey(currentLicenseKey, true);
+                                ^
+    symbol:   method saveLicenseKey(String,boolean)
+    location: variable sessionManager of type SessionManager
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\SessionHandler.java:238: error: cannot find symbol
+              sessionManager.saveAutoLoginPreference(autoLogin);
+                            ^
+    symbol:   method saveAutoLoginPreference(boolean)
+    location: variable sessionManager of type SessionManager
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\SessionHandler.java:324: error: cannot find symbol
+              return sessionManager.hasValidStoredAuth();
+                                   ^
+    symbol:   method hasValidStoredAuth()
+    location: variable sessionManager of type SessionManager
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\SessionManager.java:130: error: cannot find symbol
+              return com.bearmod.loader.server.SimpleLicenseVerifier.validateLicense(licenseKey);
+                                                                    ^
+    symbol:   method validateLicense(String)
+    location: class SimpleLicenseVerifier
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\SessionManager.java:146: error: cannot find symbol
+              boolean isValid = com.bearmod.loader.server.SimpleLicenseVerifier.validateLicense(licenseKey);
+                                                                               ^
+    symbol:   method validateLicense(String)
+    location: class SimpleLicenseVerifier
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\SessionManager.java:150: error: cannot find symbol
+                  String userId = com.bearmod.loader.server.SimpleLicenseVerifier.getUserId(licenseKey);
+                                                                                 ^
+    symbol:   method getUserId(String)
+    location: class SimpleLicenseVerifier
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\PermissionDelegate.java:76: error: cannot find symbol
+          overlayPermissionLauncher = activity.registerForActivityResult(
+                                              ^
+    symbol:   method registerForActivityResult(StartActivityForResult,(result)->[...]d); })
+    location: variable activity of type Activity
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\PermissionDelegate.java:84: error: cannot find symbol
+          unknownSourcesPermissionLauncher = activity.registerForActivityResult(
+                                                     ^
+    symbol:   method registerForActivityResult(StartActivityForResult,(result)->[...])); })
+    location: variable activity of type Activity
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\PermissionDelegate.java:92: error: cannot find symbol
+          storagePermissionLauncher = activity.registerForActivityResult(
+                                              ^
+    symbol:   method registerForActivityResult(RequestMultiplePermissions,(result)->[...]d); })
+    location: variable activity of type Activity
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\AuthUI.java:76: error: package R does not exist
+              editLicenseKey = rootView.findViewById(R.id.edit_license_key);
+                                                      ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\AuthUI.java:77: error: package R does not exist
+              buttonCopyPaste = rootView.findViewById(R.id.button_copy_paste);
+                                                       ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\AuthUI.java:78: error: package R does not exist
+              buttonLogin = rootView.findViewById(R.id.button_login);
+                                                   ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\AuthUI.java:79: error: package R does not exist
+              progressBar = rootView.findViewById(R.id.progress_bar);
+                                                   ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\AuthUI.java:80: error: package R does not exist
+              statusText = rootView.findViewById(R.id.status_text);
+                                                  ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\AuthUI.java:81: error: package R does not exist
+              checkboxRememberKey = rootView.findViewById(R.id.checkbox_remember_key);
+                                                           ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\AuthUI.java:82: error: package R does not exist
+              checkboxAutoLogin = rootView.findViewById(R.id.checkbox_auto_login);
+                                                         ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:97: error: package R does not exist
+              serviceStatus = rootView.findViewById(R.id.service_status);
+                                                     ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:98: error: package R does not exist
+              startButton = rootView.findViewById(R.id.start_button);
+                                                   ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:99: error: package R does not exist
+              stopButton = rootView.findViewById(R.id.stop_button);
+                                                  ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:100: error: package R does not exist
+              exitButton = rootView.findViewById(R.id.exit_button);
+                                                  ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:103: error: package R does not exist
+              targetBundleSpinner = rootView.findViewById(R.id.target_bundle_spinner);
+                                                           ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:104: error: package R does not exist
+              targetStatusText = rootView.findViewById(R.id.target_status_text);
+                                                        ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:107: error: package R does not exist
+              textGameName = rootView.findViewById(R.id.text_game_name);
+                                                    ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:108: error: package R does not exist
+              textGameVersion = rootView.findViewById(R.id.text_game_version);
+                                                       ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:109: error: package R does not exist
+              textObbStatus = rootView.findViewById(R.id.text_obb_status);
+                                                     ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:110: error: package R does not exist
+              btnFixObb = rootView.findViewById(R.id.btn_fix_obb);
+                                                 ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:113: error: package R does not exist
+              regionGlobal = rootView.findViewById(R.id.region_global);
+                                                    ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:114: error: package R does not exist
+              regionKorea = rootView.findViewById(R.id.region_korea);
+                                                   ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:115: error: package R does not exist
+              regionVietnam = rootView.findViewById(R.id.region_vietnam);
+                                                     ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:116: error: package R does not exist
+              regionTaiwan = rootView.findViewById(R.id.region_taiwan);
+                                                    ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:117: error: package R does not exist
+              regionIndia = rootView.findViewById(R.id.region_india);
+                                                   ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:120: error: package R does not exist
+              serverStatus = rootView.findViewById(R.id.server_status);
+                                                    ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:121: error: package R does not exist
+              detectionStatusIcon = rootView.findViewById(R.id.detection_status_icon);
+                                                           ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:122: error: package R does not exist
+              safeStatus = rootView.findViewById(R.id.safe_status);
+                                                  ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:123: error: package R does not exist
+              unsafeStatus = rootView.findViewById(R.id.unsafe_status);
+                                                    ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:126: error: package R does not exist
+              navHome = rootView.findViewById(R.id.nav_home);
+                                               ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:127: error: package R does not exist
+              navSettings = rootView.findViewById(R.id.nav_settings);
+                                                   ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:128: error: package R does not exist
+              mainAppLayout = rootView.findViewById(R.id.main_app_layout);
+                                                     ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:129: error: package R does not exist
+              settingsLayout = rootView.findViewById(R.id.settings_layout);
+                                                      ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:132: error: package R does not exist
+              switchAutoClear = rootView.findViewById(R.id.switch_auto_clear);
+                                                       ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:133: error: package R does not exist
+              switchFastDownload = rootView.findViewById(R.id.switch_fast_download);
+                                                          ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:134: error: package R does not exist
+              btnClearDataNow = rootView.findViewById(R.id.btn_clear_data_now);
+                                                       ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:135: error: package R does not exist
+              btnExitApp = rootView.findViewById(R.id.btn_exit_app);
+                                                  ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:382: error: package R does not exist
+                      textObbStatus.setTextColor(ContextCompat.getColor(context, R.color.premium_text_secondary));
+                                                                                  ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:385: error: package R does not exist
+                      textObbStatus.setTextColor(ContextCompat.getColor(context, R.color.premium_accent_green));
+                                                                                  ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:388: error: package R does not exist
+                      textObbStatus.setTextColor(ContextCompat.getColor(context, R.color.premium_accent_red));
+                                                                                  ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:429: error: package R does not exist
+                  detectionStatusIcon.setImageResource(isDetected ? R.drawable.ic_check_circle : R.drawable.ic_error);
+                                                                     ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:429: error: package R does not exist
+                  detectionStatusIcon.setImageResource(isDetected ? R.drawable.ic_check_circle : R.drawable.ic_error);
+                                                                                                  ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:431: error: package R does not exist
+                      isDetected ? R.color.premium_accent_green : R.color.premium_accent_red));
+                                    ^
+  D:\injector\bearmod\app\src\main\java\com\bearmod\loader\component\UIController.java:431: error: package R does not exist
+                      isDetected ? R.color.premium_accent_green : R.color.premium_accent_red));
+                                                                   ^
+  67 errors
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights.
+
+BUILD FAILED in 7s
+21 actionable tasks: 2 executed, 19 up-to-date
+Configuration cache entry reused.

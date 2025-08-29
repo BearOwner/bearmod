@@ -32,10 +32,9 @@ import androidx.core.view.WindowCompat;
 import com.bearmod.R;
 import com.bearmod.security.AntiDetectionManager;
 import com.bearmod.BuildConfig;
-import com.bearmod.util.NativeUtils;
+import com.bearmod.loader.utilities.NativeUtils;
 import com.bearmod.bridge.NativeLib;
-import com.bearmod.Floating;
-import com.bearmod.util.Logx;
+import com.bearmod.loader.utilities.Logx;
 
 /**
  * SplashActivity - Initial app launch and loading screen
@@ -243,7 +242,8 @@ public class SplashActivity extends AppCompatActivity {
                 Logx.d("SPL_INIT_OK");
                 // Register natives using Class objects to avoid FindClass on string names
                 try {
-                    NativeLib.registerNatives(Floating.class, com.bearmod.activity.LoginActivity.class, com.bearmod.bridge.NativeLib.class);
+                    // Use new modular service approach for native registration
+                    NativeLib.registerNatives(com.bearmod.loader.floating.FloatService.class, com.bearmod.activity.LoginActivity.class, com.bearmod.bridge.NativeLib.class);
                     Logx.d("SPL_REG_OK");
                 } catch (Throwable regErr) {
                     Logx.w("SPL_REG_FAIL");
@@ -295,46 +295,54 @@ public class SplashActivity extends AppCompatActivity {
     @SuppressLint("SetTextI18n")
     private void checkAuthenticationAndNavigate() {
         // Check if user has valid stored authentication
-        if (LoginActivity.hasValidKey(this) && com.bearmod.auth.SimpleLicenseVerifier.isAutoLoginEnabled(this)) {
-            status.setText("Validating stored authentication...");
-            // If offline, skip auto-login and go to Login gracefully
-            if (!isNetworkAvailable()) {
-                status.setText("Offline - please login");
-                safeNavigateToLoginDelayed(500);
-                return;
+        try {
+            if (com.bearmod.auth.SimpleLicenseVerifier.hasValidStoredAuth(this) && com.bearmod.auth.SimpleLicenseVerifier.isAutoLoginEnabled(this)) {
+                status.setText("Validating stored authentication...");
+                // If offline, skip auto-login and go to Login gracefully
+                if (!isNetworkAvailable()) {
+                    status.setText("Offline - please login");
+                    safeNavigateToLoginDelayed(500);
+                    return;
+                }
+
+                // Start a timeout watchdog to avoid getting stuck
+                startAuthTimeoutWatchdog();
+
+                // Attempt auto-login with stored session/token
+                com.bearmod.auth.SimpleLicenseVerifier.autoLogin(this, new com.bearmod.auth.SimpleLicenseVerifier.AuthCallback() {
+                    @Override
+                    public void onSuccess(String message) {
+                        runOnUiThread(() -> {
+                            cancelAuthTimeoutWatchdog();
+                            cancelLoginNavigateTask();
+                            Logx.d("SPL_AUTH_OK");
+                            status.setText("Authentication verified!");
+
+                            // Navigate to MainActivity after short delay
+                            watchdog.postDelayed(() -> navigateMainSafe(), 600);
+                        });
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        runOnUiThread(() -> {
+                            cancelAuthTimeoutWatchdog();
+                            Logx.d("SPL_AUTH_FAIL");
+                            status.setText("Authentication required...");
+
+                            // Navigate to LoginActivity after short delay
+                            safeNavigateToLoginDelayed(800);
+                        });
+                    }
+                });
+            } else {
+                Logx.d("SPL_NO_AUTH");
+                status.setText("Authentication required...");
+
+                // Navigate to LoginActivity after short delay
+                safeNavigateToLoginDelayed(800);
             }
-
-            // Start a timeout watchdog to avoid getting stuck
-            startAuthTimeoutWatchdog();
-
-            // Attempt auto-login with stored session/token
-            com.bearmod.auth.SimpleLicenseVerifier.autoLogin(this, new com.bearmod.auth.SimpleLicenseVerifier.AuthCallback() {
-                @Override
-                public void onSuccess(String message) {
-                    runOnUiThread(() -> {
-                        cancelAuthTimeoutWatchdog();
-                        cancelLoginNavigateTask();
-                        Logx.d("SPL_AUTH_OK");
-                        status.setText("Authentication verified!");
-
-                        // Navigate to MainActivity after short delay
-                        watchdog.postDelayed(() -> navigateMainSafe(), 600);
-                    });
-                }
-
-                @Override
-                public void onError(String error) {
-                    runOnUiThread(() -> {
-                        cancelAuthTimeoutWatchdog();
-                        Logx.d("SPL_AUTH_FAIL");
-                        status.setText("Authentication required...");
-
-                        // Navigate to LoginActivity after short delay
-                        safeNavigateToLoginDelayed(800);
-                    });
-                }
-            });
-        } else {
+        } catch (Exception e) {
             Logx.d("SPL_NO_AUTH");
             status.setText("Authentication required...");
 

@@ -30,12 +30,16 @@ import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
 
 import com.bearmod.R;
-import com.bearmod.Floating;
 import com.bearmod.TargetAppManager;
 import com.bearmod.InstallerPackageManager;
 import com.bearmod.PermissionManager;
 import com.bearmod.security.DataClearingManager;
 import com.bearmod.patch.StartupOrchestrator;
+
+// New modular imports
+import com.bearmod.loader.component.MainFacade;
+import com.bearmod.loader.component.PermissionHandler;
+import com.bearmod.loader.utilities.Logx;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -126,6 +130,12 @@ public class MainActivity extends AppCompatActivity {
     private PermissionManager permissionManager;
     private String selectedTargetPackage;
 
+    // New modular facade
+    private MainFacade mainFacade;
+
+    // New modular permission handler
+    private PermissionHandler permissionHandler;
+
     // Auto-patch management
     private com.bearmod.patch.AutoPatchManager autoPatchManager;
 
@@ -149,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
                             Log.d(TAG, "Overlay permission granted");
                             android.widget.Toast.makeText(this, "Overlay permission granted", android.widget.Toast.LENGTH_SHORT).show();
                         } else {
-                            Log.w(TAG, "Overlay permission denied");
+                            Logx.w("Overlay permission denied");
                             android.widget.Toast.makeText(this, "Overlay permission is required for ESP functionality", android.widget.Toast.LENGTH_LONG).show();
                             showPermissionDeniedDialog();
                         }
@@ -194,7 +204,7 @@ public class MainActivity extends AppCompatActivity {
                             Log.d(TAG, "Unknown sources permission granted");
                             android.widget.Toast.makeText(this, "Unknown sources permission granted", android.widget.Toast.LENGTH_SHORT).show();
                         } else {
-                            Log.w(TAG, "Unknown sources permission denied");
+                            Logx.w("Unknown sources permission denied");
                             android.widget.Toast.makeText(this, "Permission denied - package installation may not work", android.widget.Toast.LENGTH_LONG).show();
                         }
                     });
@@ -208,23 +218,79 @@ public class MainActivity extends AppCompatActivity {
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
 
-            // Strict auth gate: block access to MainActivity without valid license
-            if (!LoginActivity.hasValidKey(this)) {
-                android.widget.Toast.makeText(this, "License key required. Please login.", android.widget.Toast.LENGTH_LONG).show();
-                startActivity(new Intent(this, com.bearmod.activity.LoginActivity.class)
-                        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK));
-                finish();
-                return;
-            }
-
-            setContentView(R.layout.activity_main);
+            // Initialize MainFacade for modular authentication and component management
+            // First initialize all UI components
             initializeViews();
             initializeManagers();
             setupButtonListeners();
             setupTargetBundleSpinner();
 
-            // Initialize native library (should already be loaded by SplashActivity)
-            LoginActivity.safeInit(this);
+            // Initialize PermissionHandler for modular permission management
+            permissionHandler = new PermissionHandler(this, this);
+
+            // Now create MainFacade with all required UI components
+            mainFacade = new MainFacade(this, new MainFacade.MainCallback() {
+                @Override
+                public void onAuthenticationRequired() {
+                    // Handle authentication requirement through facade
+                    android.widget.Toast.makeText(MainActivity.this, "License key required. Please login.", android.widget.Toast.LENGTH_LONG).show();
+                    startActivity(new Intent(MainActivity.this, com.bearmod.activity.LoginActivity.class)
+                            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK));
+                    finish();
+                }
+
+                @Override
+                public void onAuthenticationSuccess() {
+                    // Handle successful authentication
+                    Log.d(TAG, "Authentication successful via MainFacade");
+                }
+
+                @Override
+                public void onServiceStartRequested() {
+                    // Handle service start through facade
+                    startModService();
+                }
+
+                @Override
+                public void onServiceStopRequested() {
+                    // Handle service stop through facade
+                    stopModService();
+                }
+
+                @Override
+                public void onExitRequested() {
+                    // Handle exit through facade
+                    handleExitRequested();
+                }
+
+                @Override
+                public void onPermissionResult(int requestCode, int resultCode, Intent data) {
+                    // Handle permission results through facade
+                    mainFacade.handlePermissionResult(requestCode, resultCode, data);
+                }
+            },
+            // NavigationManager parameters
+            mainAppLayout, settingsLayout, navHome, navSettings,
+            // RegionSelector parameters
+            regionGlobal, regionKorea, regionVietnam, regionTaiwan, regionIndia,
+            // LicenseTimer parameters
+            countdownDays, countdownHours, countdownMinutes, countdownSeconds,
+            // ServiceController parameters
+            serviceStatus, startButton, stopButton,
+            targetAppManager);
+
+            // Strict auth gate: block access to MainActivity without valid license
+            if (!mainFacade.hasValidAuthentication()) {
+                mainFacade.handleAuthenticationRequired();
+                return;
+            }
+
+            setContentView(R.layout.activity_main);
+            // UI components already initialized above for MainFacade
+            setupTargetBundleSpinner();
+
+            // Initialize native library through facade
+            mainFacade.initializeNativeLibrary();
 
             // Setup auto-detection and UI
             setupAutoDetection();
@@ -468,7 +534,7 @@ public class MainActivity extends AppCompatActivity {
         if (isAutoClearEnabled()) {
             secureExit(true);
         } else {
-            try { stopService(new Intent(this, Floating.class)); } catch (Exception ignored) {}
+            try { com.bearmod.loader.floating.FloatService.stopService(this); } catch (Exception ignored) {}
             finishAffinity();
         }
     }
@@ -721,21 +787,16 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         Log.d(TAG, "MainActivity resumed");
 
-        // Verify authentication state when app resumes
-        if (!LoginActivity.hasValidKey(this)) {
+        // Verify authentication state when app resumes using MainFacade
+        if (!mainFacade.hasValidAuthentication()) {
             Log.w(TAG, "Authentication invalid on resume - redirecting to login");
             // Gently redirect without abrupt close
-            android.widget.Toast.makeText(this, "Session expired. Please login.", android.widget.Toast.LENGTH_SHORT).show();
-            try {
-                startActivity(new Intent(this, com.bearmod.activity.LoginActivity.class));
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to start LoginActivity", e);
-            }
+            mainFacade.handleAuthenticationRequired();
             return;
         }
 
         // Re-enable countdown timer after authentication verification
-        startLicenseCountdownTimer();
+        mainFacade.startLicenseTimer();
 
         // Update service status
         updateServiceStatus();
@@ -821,11 +882,32 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Start license countdown timer using Android's CountDownTimer for better performance.
-     * This approach calculates the duration once and uses an optimized timer that doesn't
-     * block the main UI thread, fixing the "Choreographer: Skipped frames" issue.
+     * Start license countdown timer using MainFacade for better modularity.
+     * This approach uses the facade pattern to coordinate timer management.
      */
     private void startLicenseCountdownTimer() {
+        try {
+            // Use MainFacade to start license timer
+            if (mainFacade != null) {
+                mainFacade.startLicenseTimer();
+                Log.d(TAG, "License countdown timer started via MainFacade");
+            } else {
+                Log.w(TAG, "MainFacade not initialized, using fallback timer");
+                // Fallback to legacy timer if facade not available
+                startLegacyCountdownTimer();
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error starting license countdown timer via facade", e);
+            // Show fallback countdown (30 days) if there's an error
+            startNewCountdownTimer(30L * ONE_DAY_IN_MILLIS);
+        }
+    }
+
+    /**
+     * Legacy countdown timer implementation (fallback)
+     */
+    private void startLegacyCountdownTimer() {
         try {
             // Stop any existing countdown timer
             stopCountdownTimer();
@@ -852,10 +934,10 @@ public class MainActivity extends AppCompatActivity {
 
             // Start the optimized CountDownTimer
             startNewCountdownTimer(durationMillis);
-            Log.d(TAG, "License countdown timer started successfully");
+            Log.d(TAG, "Legacy license countdown timer started successfully");
 
         } catch (Exception e) {
-            Log.e(TAG, "Error starting license countdown timer", e);
+            Log.e(TAG, "Error starting legacy license countdown timer", e);
             // Show fallback countdown (30 days) if there's an error
             startNewCountdownTimer(30L * ONE_DAY_IN_MILLIS);
         }
@@ -922,6 +1004,11 @@ public class MainActivity extends AppCompatActivity {
             androidCountdownTimer = null;
         }
 
+        // Stop MainFacade timer
+        if (mainFacade != null) {
+            mainFacade.stopLicenseTimer();
+        }
+
         // Legacy cleanup (in case old handler/runnable still exists)
         if (countdownHandler != null && countdownRunnable != null) {
             countdownHandler.removeCallbacks(countdownRunnable);
@@ -931,19 +1018,27 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Get license expiration date from SimpleLicenseVerifier
-     * Integrated with KeyAuth API authentication system
+     * Get license expiration date from new server component
+     * Integrated with modular KeyAuth API authentication system
      */
     private String EXP() {
-        // Get real expiration date from SimpleLicenseVerifier
-        String expiration = com.bearmod.auth.SimpleLicenseVerifier.getUserExpiration();
+        try {
+            // Get real expiration date from new server component
+            String expiration = com.bearmod.loader.server.SimpleLicenseVerifier.getUserExpiration();
 
-        if (expiration != null && !expiration.isEmpty()) {
-            Log.d(TAG, "Using real license expiration: " + expiration);
-            return expiration;
-        } else {
-            // Fallback to default expiration if no real data available
-            Log.d(TAG, "No real expiration data available, using fallback");
+            if (expiration != null && !expiration.isEmpty()) {
+                Log.d(TAG, "Using real license expiration from server: " + expiration);
+                return expiration;
+            } else {
+                // Fallback to default expiration if no real data available
+                Log.d(TAG, "No real expiration data available from server, using fallback");
+                long futureTime = System.currentTimeMillis() + (30L * 24 * 60 * 60 * 1000); // 30 days
+                @SuppressLint("SimpleDateFormat") SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                return dateFormat.format(new Date(futureTime));
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting expiration from server component", e);
+            // Fallback to default expiration on error
             long futureTime = System.currentTimeMillis() + (30L * 24 * 60 * 60 * 1000); // 30 days
             @SuppressLint("SimpleDateFormat") SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             return dateFormat.format(new Date(futureTime));
@@ -986,18 +1081,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Check if storage permissions are granted (using PermissionManager)
+     * Check if storage permissions are granted (using centralized PermissionDelegate)
      */
     private boolean isStoragePermissionGranted() {
         try {
-            if (permissionManager != null) {
-                PermissionManager.PermissionStatus status = permissionManager.checkStoragePermission();
-                return status.isGranted();
-            } else {
-                Log.w(TAG, "PermissionManager not initialized - using fallback storage permission check");
-                // Fallback: Check basic storage permission
-                return checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
-            }
+            // Use centralized permission delegate
+            com.bearmod.loader.component.PermissionDelegate permissionDelegate =
+                new com.bearmod.loader.component.PermissionDelegate(com.bearmod.loader.utilities.ResourceProvider.from(this));
+            return permissionDelegate.isStoragePermissionGranted();
         } catch (Exception e) {
             Log.e(TAG, "Error checking storage permission", e);
             return false;
@@ -1126,10 +1217,8 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "Starting mod service...");
 
             // Require valid authentication before starting any service
-            if (!LoginActivity.hasValidKey(this)) {
-                android.widget.Toast.makeText(this, "License key required. Please login.", android.widget.Toast.LENGTH_LONG).show();
-                startActivity(new Intent(this, com.bearmod.activity.LoginActivity.class)
-                        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK));
+            if (!mainFacade.hasValidAuthentication()) {
+                mainFacade.handleAuthenticationRequired();
                 return;
             }
 
@@ -1243,13 +1332,13 @@ public class MainActivity extends AppCompatActivity {
                     if (selectedTargetPackage != null && isTargetInForeground(selectedTargetPackage) && injectionReady) {
                         // Start overlay service only now
                         try {
-                            Intent svc = new Intent(MainActivity.this, Floating.class);
-                            startService(svc);
+                            // Use new modular service approach
+                            com.bearmod.loader.floating.FloatService.startService(MainActivity.this);
                             isServiceRunning = true;
                             updateServiceStatus();
                             android.widget.Toast.makeText(MainActivity.this, "Service started", android.widget.Toast.LENGTH_SHORT).show();
                         } catch (Exception se) {
-                            Log.e(TAG, "Failed to start Floating service", se);
+                            Log.e(TAG, "Failed to start modular floating service", se);
                         }
                         hideLoadingSpinner();
                         if (stopButton != null) stopButton.setEnabled(true);
@@ -1333,7 +1422,8 @@ public class MainActivity extends AppCompatActivity {
      */
     private void stopModService() {
         try {
-            stopService(new Intent(this, Floating.class));
+            // Use new modular service approach
+            com.bearmod.loader.floating.FloatService.stopService(this);
             isServiceRunning = false;
             updateServiceStatus();
             if (startButton != null) startButton.setEnabled(true);
@@ -1370,7 +1460,7 @@ public class MainActivity extends AppCompatActivity {
         if (isAutoClearEnabled()) {
             secureExit(true);
         } else {
-            try { stopService(new Intent(this, Floating.class)); } catch (Exception ignored) {}
+            try { com.bearmod.loader.floating.FloatService.stopService(this); } catch (Exception ignored) {}
             finish();
         }
     }
@@ -1384,7 +1474,7 @@ public class MainActivity extends AppCompatActivity {
                 @Override public void onCleanupCompleted(boolean success) {
                     hideLoadingSpinner();
                     // Finish app completely
-                    try { stopService(new Intent(MainActivity.this, Floating.class)); } catch (Exception ignored) {}
+                    try { com.bearmod.loader.floating.FloatService.stopService(MainActivity.this); } catch (Exception ignored) {}
                     finishAffinity();
                     android.os.Process.killProcess(android.os.Process.myPid());
                     System.exit(0);
@@ -1473,6 +1563,14 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         stopCountdownTimer();
+
+        // Cleanup MainFacade resources
+        if (mainFacade != null) {
+            mainFacade.cleanup();
+        }
+
+        // PermissionHandler doesn't require explicit cleanup
+
         Log.d(TAG, "MainActivity destroyed");
     }
 }

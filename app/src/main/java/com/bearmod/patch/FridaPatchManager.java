@@ -2,7 +2,7 @@ package com.bearmod.patch;
 
 import android.content.Context;
 import android.util.Log;
-import com.bearmod.util.Logx;
+import com.bearmod.loader.utilities.Logx;
 
 
 import com.bearmod.security.SignatureVerifier;

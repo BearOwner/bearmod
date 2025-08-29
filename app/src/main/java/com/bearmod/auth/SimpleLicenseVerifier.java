@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
 
-import com.bearmod.activity.LoginActivity;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -1273,8 +1272,9 @@ public class SimpleLicenseVerifier {
     private static void updateCppAuthenticationState(String sessionId, String token, String hwid, boolean isValid) {
         try {
             // Call JNI method to update C++ global variables (bValid, g_Auth, g_Token)
-            LoginActivity.updateAuthenticationState(sessionId, token, hwid, isValid);
-            Log.d(TAG, "C++ authentication state updated via JNI bridge - Valid: " + isValid);
+            // Using new server component for authentication state updates
+            com.bearmod.loader.server.SimpleLicenseVerifier.updateAuthenticationState(sessionId, token, hwid, isValid);
+            Log.d(TAG, "C++ authentication state updated via new server component - Valid: " + isValid);
         } catch (Exception e) {
             Log.e(TAG, "Failed to update C++ authentication state", e);
         }
